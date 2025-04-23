@@ -126,20 +126,14 @@ export class AuthService {
 
       return createdUser;
     });
-    // Email template handling here...
-    const templatePath = join(__dirname, "../../templates/welcome-email.hbs");
-
-    const templateSource = await (await fs.readFile(templatePath)).toString();
-
-    const compiledTemplate = Handlebars.compile(templateSource);
-
-    const html = compiledTemplate({ fullName });
-
-    transporter.sendMail({
-      to: email,
-      subject: "welcome to Eventure",
-      html,
-    });
+    await this.mailService.sendEmail(
+      email,
+      "Welcome To Eventure",
+      "welcome-email",
+      {
+        fullname: fullName,
+      }
+    );
     return newUser;
   };
 

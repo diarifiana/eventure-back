@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsStrongPassword,
 } from "class-validator";
@@ -23,8 +24,10 @@ export class RegisterDTO {
   readonly password!: string;
 
   @IsString()
+  @IsOptional()
   referralUsed?: string;
 
   @IsString()
+  @IsOptional()
   readonly organizerName?: string;
 }
