@@ -7,3 +7,4 @@ export const JWT_SECRET_KEY_FORGOT_PASSWORD =
 export const GMAIL_EMAIL = process.env.GMAIL_EMAIL;
 export const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 export const BASE_URL_FE = process.env.BASE_URL_FE;
+export const CLOUDINARY_URL = process.env.CLOUDINARY_URL;

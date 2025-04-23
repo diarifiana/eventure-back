@@ -7,7 +7,7 @@ import { VoucherService } from "./voucher.service";
 import { PointService } from "./point.service";
 
 @injectable()
-export class EventService {
+export class TransactionService {
   private prisma: PrismaService;
   private couponService: CouponService;
   private voucherService: VoucherService;
