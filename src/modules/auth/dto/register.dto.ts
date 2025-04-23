@@ -23,7 +23,7 @@ export class RegisterDTO {
   readonly password!: string;
 
   @IsString()
-  readonly referralUsed?: string;
+  referralUsed?: string;
 
   @IsString()
   readonly organizerName?: string;
