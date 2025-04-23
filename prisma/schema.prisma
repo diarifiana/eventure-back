@@ -1,0 +1,217 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+  output          = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
+}
+
+model Sample {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("samples")
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  referralNumber String           @unique
+  fullName       String
+  userName       String
+  email          String
+  password       String
+  role           Role             @default(USER)
+  profilePic     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?
+  organizer      Organizer?
+  referralCoupon ReferralCoupon[]
+  pointDetails   PointDetail[]
+  transactions   Transaction[]
+
+  @@map("users")
+}
+
+model Organizer {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  user       User     @relation(fields: [userId], references: [id])
+  name       String
+  aboutUs    String?
+  profilePic String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isDeleted  Boolean  @default(false)
+  events     Event[]  @relation("OrganizerToEvent")
+
+  @@map("organizers")
+}
+
+model ReferralCoupon {
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  user           User          @relation(fields: [userId], references: [id])
+  referralCoupon String        @unique
+  amount         Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  expiredAt      DateTime
+  isClaimed      Boolean       @default(false)
+  isDeleted      Boolean       @default(false)
+  transaction    Transaction[]
+
+  @@map("referralCoupons")
+}
+
+model PointDetail {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Int
+  expiredAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+
+  @@map("pointDetails")
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  categoryId  Int
+  category    Category  @relation(fields: [categoryId], references: [id])
+  organizerId Int
+  organizer   Organizer @relation("OrganizerToEvent", fields: [organizerId], references: [id])
+  slug        String    @unique
+  name        String
+  desc        String
+  startDate   DateTime
+  endDate     DateTime
+  location    Location
+  thumbnail   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isDeleted   Boolean   @default(false)
+  vouchers    Voucher[]
+  tickets     Ticket[]
+
+  @@map("events")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+  events    Event[]
+
+  @@map("categories")
+}
+
+model Voucher {
+  id             Int           @id @default(autoincrement())
+  eventId        Int
+  event          Event         @relation(fields: [eventId], references: [id])
+  code           String        @unique
+  discountAmount Int
+  startDate      DateTime
+  endDate        DateTime
+  qty            Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  isDeleted      Boolean       @default(false)
+  transactions   Transaction[]
+
+  @@map("vouchers")
+}
+
+model Ticket {
+  id           Int           @id @default(autoincrement())
+  eventId      Int
+  event        Event         @relation(fields: [eventId], references: [id])
+  ticketType   String
+  price        Int
+  qty          Int
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  isDeleted    Boolean       @default(false)
+  transactions Transaction[]
+
+  @@map("tickets")
+}
+
+model Transaction {
+  id                 Int             @id @default(autoincrement())
+  uuid               String          @unique @default(uuid())
+  userId             Int
+  user               User            @relation(fields: [userId], references: [id])
+  ticketId           Int
+  ticket             Ticket          @relation(fields: [ticketId], references: [id])
+  referralCouponCode String          @default("")
+  voucherCode        String          @default("")
+  qty                Int
+  totalAmount        Int
+  status             Status          @default(WAITING_FOR_PAYMENT)
+  usePoints          Boolean         @default(false)
+  paymentProof       String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  isDeleted          Boolean         @default(false)
+  review             Review[]
+  referralCoupon     ReferralCoupon? @relation(fields: [referralCouponId], references: [id])
+  referralCouponId   Int?
+  voucher            Voucher?        @relation(fields: [voucherId], references: [id])
+  voucherId          Int?
+
+  @@map("transactions")
+}
+
+model Review {
+  id            Int         @id @default(autoincrement())
+  transactionId Int
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  review        String
+  rating        Rating
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  isDeleted     Boolean     @default(false)
+
+  @@map("reviews")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Status {
+  WAITING_FOR_PAYMENT
+  WAITING_CONFIRMATION
+  REJECTED
+  EXPIRED
+  CANCELED
+  DONE
+}
+
+enum Rating {
+  BAD
+  GOOD
+  EXCELLENT
+}
+
+enum Location {
+  JAKARTA
+  BANDUNG
+  SURABAYA
+  YOGYAKARTA
+  SEMARANG
+}
