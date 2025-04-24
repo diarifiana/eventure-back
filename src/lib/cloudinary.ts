@@ -1,50 +1,58 @@
-// Require the cloudinary library
-const cloudinary = require("cloudinary").v2;
+import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import { Readable } from "stream";
+import {
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
+  CLOUDINARY_CLOUD_NAME,
+} from "../config";
 
-// Return "https" URLs by setting secure: true
 cloudinary.config({
-  secure: true,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
+  cloud_name: CLOUDINARY_CLOUD_NAME,
 });
 
-// Log the configuration
-console.log(cloudinary.config());
-
-/////////////////////////
-// Uploads an image file
-/////////////////////////
-const uploadImage = async (imagePath: string) => {
-  // Use the uploaded file's name as the asset's public ID and
-  // allow overwriting the asset with new versions
-  const options = {
-    folder: "proofs",
-    use_filename: true,
-    unique_filename: false,
-    overwrite: true,
-  };
-
-  try {
-    // Upload the image
-    const result = await cloudinary.uploader.upload(imagePath, options);
-    console.log(result);
-    return result.public_id;
-  } catch (error) {
-    console.error(error);
-  }
+const bufferToStream = (buffer: Buffer) => {
+  const readable = new Readable();
+  readable._read = () => {};
+  readable.push(buffer);
+  readable.push(null);
+  return readable;
 };
 
-//////////////////
-//
-// Main function
-//
-//////////////////
-(async () => {
-  // Set the image to upload
-  const imagePath =
-    "https://images.unsplash.com/photo-1558980394-4c7c9299fe96?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+export const cloudinaryUpload = (
+  file: Express.Multer.File,
+  folder: string = "/"
+): Promise<UploadApiResponse> => {
+  return new Promise((resolve, reject) => {
+    const readableStream = bufferToStream(file.buffer);
 
-  // Upload the image
-  const publicId = await uploadImage(imagePath);
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder },
+      (err, result) => {
+        if (err) {
+          return reject(err);
+        }
+        if (!result) {
+          return reject(new Error("Upload failed: No result returned"));
+        }
 
-  // Log the image tag to the console
-  console.log(publicId);
-})();
+        resolve(result);
+      }
+    );
+
+    readableStream.pipe(uploadStream);
+  });
+};
+
+const extractPublidIdFromUrl = (url: string) => {
+  const urlParts = url.split("/");
+  const publicIdWithExtension = urlParts[urlParts.length - 1];
+  const publicId = publicIdWithExtension.split(".")[0];
+  return publicId;
+};
+
+export const cloudinaryRemove = async (secureUrl: string) => {
+  const publicId = extractPublidIdFromUrl(secureUrl);
+  return await cloudinary.uploader.destroy(publicId);
+};

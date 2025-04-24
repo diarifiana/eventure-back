@@ -1,24 +1,20 @@
+import { nanoid } from "nanoid";
 import { injectable } from "tsyringe";
-import { PrismaService } from "../prisma/prisma.service";
-import { RegisterDTO } from "./dto/register.dto";
-import { ApiError } from "../../utils/api-error";
-import { PasswordService } from "./password.service";
-import { LoginDTO } from "./dto/login.dto";
-import { TokenService } from "./token.service";
 import {
   BASE_URL_FE,
   JWT_SECRET_KEY,
   JWT_SECRET_KEY_FORGOT_PASSWORD,
 } from "../../config";
-import { ForgotPasswordDTO } from "./dto/forgot-password.dto";
-import { MailService } from "../mail/mail.service";
-import { ReferralService } from "./referral.service";
-import { nanoid } from "nanoid";
 import { addMonths } from "../../utils/addMonth";
-import { join } from "path";
-import fs from "fs/promises";
-import { transporter } from "../../lib/nodemailer";
-import Handlebars from "handlebars";
+import { ApiError } from "../../utils/api-error";
+import { MailService } from "../mail/mail.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { ForgotPasswordDTO } from "./dto/forgot-password.dto";
+import { LoginDTO } from "./dto/login.dto";
+import { RegisterDTO } from "./dto/register.dto";
+import { PasswordService } from "./password.service";
+import { ReferralService } from "./referral.service";
+import { TokenService } from "./token.service";
 
 @injectable()
 export class AuthService {

@@ -1,10 +1,11 @@
 import { injectable } from "tsyringe";
-import { PrismaService } from "../prisma/prisma.service";
-import { TransactionDTO } from "./dto/transaction.dto";
+import { cloudinaryUpload } from "../../lib/cloudinary";
 import { ApiError } from "../../utils/api-error";
+import { PrismaService } from "../prisma/prisma.service";
 import { CouponService } from "./coupon.service";
-import { VoucherService } from "./voucher.service";
+import { TransactionDTO } from "./dto/transaction.dto";
 import { PointService } from "./point.service";
+import { VoucherService } from "./voucher.service";
 
 @injectable()
 export class TransactionService {
@@ -25,10 +26,7 @@ export class TransactionService {
     this.pointService = PointService;
   }
 
-  createTransactionService = async (
-    body: TransactionDTO,
-    authUserId: number
-  ) => {
+  createTransaction = async (body: TransactionDTO, authUserId: number) => {
     const ticket = await this.prisma.ticket.findFirst({
       where: { id: body.ticketId },
     });
@@ -110,5 +108,11 @@ export class TransactionService {
     //   );
 
     return { messsage: "Created successfully", newData };
+  };
+
+  uploadImage = async (thumbnail: Express.Multer.File) => {
+    const { secure_url } = await cloudinaryUpload(thumbnail);
+
+    return { message: "Thumbnail uploaded" };
   };
 }
