@@ -25,7 +25,7 @@ export class TransactionRouter {
 
     this.router.post(
       "/upload",
-      uploader(5).fields([{ name: "thumbnail", maxCount: 1 }]),
+      uploader(1).fields([{ name: "thumbnail", maxCount: 1 }]),
       this.transactionController.uploadImage
     );
   };

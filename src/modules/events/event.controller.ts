@@ -2,6 +2,9 @@ import { Location } from "@prisma/client";
 import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
 import { EventService } from "./event.service";
+import { plainToInstance } from "class-transformer";
+import { GetEventsDTO } from "./dto/get-events.dto";
+import { CategoryName } from "../../generated/prisma";
 
 @injectable()
 export class EventController {
@@ -13,7 +16,7 @@ export class EventController {
 
   createEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.createEventService(req.body);
+      const result = await this.eventService.createEvent(req.body);
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -22,7 +25,8 @@ export class EventController {
 
   getEvents = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.getEventsService();
+      const query = plainToInstance(GetEventsDTO, req.query);
+      const result = await this.eventService.getEvents(query);
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -31,9 +35,7 @@ export class EventController {
 
   getEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.getEventService(
-        Number(req.params.id)
-      );
+      const result = await this.eventService.getEvent(req.params.slug);
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -46,8 +48,8 @@ export class EventController {
     next: NextFunction
   ) => {
     try {
-      const result = await this.eventService.getEventsByCategoryService(
-        req.params.slug
+      const result = await this.eventService.getEventsByCategory(
+        req.params.slug as CategoryName
       );
 
       res.status(200).send(result);
@@ -62,7 +64,7 @@ export class EventController {
     next: NextFunction
   ) => {
     try {
-      const result = await this.eventService.getEventsByLocationService({
+      const result = await this.eventService.getEventsByLocation({
         location: req.params.slug as Location,
       });
       res.status(200).send(result);
@@ -73,7 +75,7 @@ export class EventController {
 
   updateEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.updateEventService(
+      const result = await this.eventService.updateEvent(
         Number(req.params.id),
         req.body
       );
@@ -89,9 +91,18 @@ export class EventController {
     next: NextFunction
   ) => {
     try {
-      const result = await this.eventService.getEventsByOrganizerService(
+      const result = await this.eventService.getEventsByOrganizer(
         Number(req.params.id)
       );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.eventService.deleteEvent(Number(req.params.id));
       res.status(200).send(result);
     } catch (error) {
       next(error);

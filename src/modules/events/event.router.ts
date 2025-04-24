@@ -52,6 +52,14 @@ export class AuthRouter {
       validateBody(EventDTO),
       this.eventController.updateEvent
     );
+
+    this.router.delete(
+      "/:id",
+      verifyToken,
+      verifyRole(["ADMIN"]),
+      validateBody(EventDTO),
+      this.eventController.updateEvent
+    );
   };
 
   getRouter() {

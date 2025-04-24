@@ -3,6 +3,8 @@ import { ApiError } from "../../utils/api-error";
 import { generateSlug } from "../../utils/generateSlug";
 import { injectable } from "tsyringe";
 import { EventDTO } from "./dto/event.dto";
+import { CategoryName, Prisma } from "../../generated/prisma";
+import { GetEventsDTO } from "./dto/get-events.dto";
 
 @injectable()
 export class EventService {
@@ -12,7 +14,7 @@ export class EventService {
     this.prisma = PrismaClient;
   }
 
-  createEventService = async (body: EventDTO) => {
+  createEvent = async (body: EventDTO) => {
     const existing = await this.prisma.event.findFirst({
       where: { name: body.name },
     });
@@ -30,19 +32,34 @@ export class EventService {
     return { message: "Created successfully", eventNew };
   };
 
-  getEventsByOrganizerService = async (organizerId: number) => {
-    const events = await this.prisma.event.findMany({
-      where: { organizerId, isDeleted: false },
-    });
-    if (!events) {
-      throw new Error("Event not found");
+  getEvents = async (query: GetEventsDTO) => {
+    const { page, take, sortBy, sortOrder, search } = query;
+
+    const whereClause: Prisma.EventWhereInput = {
+      isDeleted: false,
+    };
+
+    if (search) {
+      whereClause.name = { contains: search, mode: "insensitive" };
     }
-    return events;
+
+    const events = await this.prisma.event.findMany({
+      where: whereClause,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * take,
+      take,
+    });
+
+    const count = await this.prisma.event.count({ where: whereClause });
+    return {
+      data: events,
+      meta: { page, take, total: count },
+    };
   };
 
-  getEventService = async (id: number) => {
+  getEvent = async (slug: string) => {
     const data = await this.prisma.event.findFirst({
-      where: { id },
+      where: { slug },
     });
 
     if (!data) {
@@ -52,7 +69,17 @@ export class EventService {
     return data;
   };
 
-  getEventsByCategoryService = async (category: string) => {
+  getEventsByOrganizer = async (organizerId: number) => {
+    const events = await this.prisma.event.findMany({
+      where: { organizerId, isDeleted: false },
+    });
+    if (!events) {
+      throw new Error("Event not found");
+    }
+    return events;
+  };
+
+  getEventsByCategory = async (category: CategoryName) => {
     const data = await this.prisma.event.findMany({
       where: {
         category: {
@@ -64,21 +91,13 @@ export class EventService {
     return data;
   };
 
-  getEventsByLocationService = async (body: Pick<EventDTO, "location">) => {
+  getEventsByLocation = async (body: Pick<EventDTO, "location">) => {
     return await this.prisma.event.findMany({
       where: { location: body.location },
     });
   };
 
-  getEventsService = async () => {
-    return await this.prisma.event.findMany({
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
-  };
-
-  updateEventService = async (id: number, body: Partial<EventDTO>) => {
+  updateEvent = async (id: number, body: Partial<EventDTO>) => {
     const event = await this.prisma.event.findFirst({
       where: { id: id },
     });
@@ -101,5 +120,22 @@ export class EventService {
       data: body,
     });
     return { message: "Updated successfully" };
+  };
+
+  deleteEvent = async (id: number) => {
+    const event = await this.prisma.event.findFirst({
+      where: { id },
+    });
+
+    if (!event) {
+      throw new ApiError("Not found", 400);
+    }
+
+    await this.prisma.event.update({
+      where: { id: id },
+      data: {
+        isDeleted: true,
+      },
+    });
   };
 }

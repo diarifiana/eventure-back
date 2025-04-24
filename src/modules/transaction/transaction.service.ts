@@ -5,7 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CouponService } from "./coupon.service";
 import { TransactionDTO } from "./dto/transaction.dto";
 import { PointService } from "./point.service";
-import { VoucherService } from "./voucher.service";
+import { VoucherService } from "../voucher/voucher.service";
 
 @injectable()
 export class TransactionService {
@@ -86,7 +86,7 @@ export class TransactionService {
   };
 
   uploadImage = async (thumbnail: Express.Multer.File) => {
-    const { secure_url } = await cloudinaryUpload(thumbnail);
+    const { secure_url } = await cloudinaryUpload(thumbnail, "paymentProof");
 
     return { message: "Thumbnail uploaded" };
   };
