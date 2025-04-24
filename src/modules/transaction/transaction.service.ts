@@ -43,23 +43,12 @@ export class TransactionService {
     const voucherAmount = this.voucherService.validateVoucher(body);
     const totalPoints = this.pointService.validatePoint(body);
 
-    // calculate A = qty * ticket
-    // calculate B = coupon amount + voucher amount
-    // jika A < B, throw error
-
     const totalToPay =
       ticket.price * body.qty -
       ((await couponAmount) + (await voucherAmount) + (await totalPoints));
     if (totalToPay < 0) {
       throw new ApiError("Discount cannot be claimed", 400);
     }
-
-    //=================== perlu tambah penghitungan point =============//
-
-    // jika coupon & voucher valid, create transaction
-    // ubah isClaimed coupon to true & decrease qty voucher
-    // decrease qty ticket
-    // calculate amount = qty * ticket - (coupon amount + voucher amount)
 
     const newData = await this.prisma.$transaction(async (tx) => {
       if ((await couponAmount) > 0) {
@@ -92,20 +81,6 @@ export class TransactionService {
         data: { ...body, totalAmount: totalToPay, userId: authUserId },
       });
     });
-
-    //=========== perlu install redis ===============//
-    //   await userTransactionQueue.add(
-    //     "new-transaction",
-    //     {
-    //       uuid: newData.uuid,
-    //     },
-    //     {
-    //       delay: 300000,
-    //       removeOnComplete: true,
-    //       attempts: 3,
-    //       backoff: { type: "exponential", delay: 1000 },
-    //     }
-    //   );
 
     return { messsage: "Created successfully", newData };
   };
