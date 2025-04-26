@@ -3,7 +3,7 @@ import { injectable } from "tsyringe";
 import { VoucherService } from "./voucher.service";
 import { plainToInstance } from "class-transformer";
 import { CreateVoucherDTO } from "./dto/create-voucher.dto";
-import { EventDTO } from "../events/dto/event.dto";
+import { EventDTO } from "../event/dto/event.dto";
 
 @injectable()
 export class VoucherController {

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Transaction Accepted</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Urbanist", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        text-align: center;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      }
+      .top-bar {
+        height: 6px;
+        background-color: #004de8;
+      }
+      .content {
+        padding: 40px 30px;
+      }
+      .logo {
+        height: 50px;
+        margin-bottom: 20px;
+      }
+      h1 {
+        color: #004de8;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      p {
+        font-size: 16px;
+        margin: 16px 0;
+        line-height: 1.5;
+      }
+      .status-message {
+        background-color: #e2f7e2;
+        color: #28a745;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        margin: 24px 0;
+      }
+
+      .button {
+        display: inline-block;
+        background-color: #004de8;
+        color: #ffffff !important;
+        padding: 14px 24px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        margin: 24px 0;
+      }
+      a {
+        color: #004de8;
+        text-decoration: none;
+      }
+      .footer {
+        font-size: 13px;
+        color: #ffffff;
+        padding: 30px;
+        background-color: #004de8;
+      }
+      .footer a {
+        color: #ffffff;
+        text-decoration: underline;
+      }
+      .transaction-details {
+        background-color: #f0f0f0;
+        padding: 16px;
+        border-radius: 6px;
+        margin-top: 24px;
+        text-align: left;
+      }
+      .transaction-details p {
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="top-bar"></div>
+      <div class="content">
+        <img
+          src="https://yourdomain.com/logo.png"
+          alt="Eventure Logo"
+          class="logo"
+        />
+        <h1>Transaction Accepted</h1>
+
+        <p>Hi <strong>{{fullName}}</strong>,</p>
+
+        <p>
+          We are happy to inform you that your recent transaction for
+          <strong>{{eventName}}</strong> has been accepted by the organizer.
+        </p>
+
+        <div class="status-message">
+          ✅ Your transaction has been successfully accepted.
+        </div>
+
+        <p>Here are the details of your transaction:</p>
+
+        <div class="transaction-details">
+          <div class="feature-list">
+            <p><strong>Transaction ID:</strong> {{transactionId}}</p>
+            <p><strong>Event Name:</strong> {{eventName}}</p>
+            <p><strong>Date and Time:</strong> {{transactionDate}}</p>
+            <p><strong>Amount:</strong> {{transactionAmount}}</p>
+            <p>
+              <strong>Status:</strong>
+              <span style="color: #28a745; font-weight: 600">Accepted</span>
+            </p>
+          </div>
+        </div>
+
+        <p>
+          We look forward to seeing you at the event. If you need any further
+          information or assistance, don't hesitate to reach out to the
+          organizer directly.
+        </p>
+
+        <a href="{{eventLink}}" class="button">Go to Event Page</a>
+
+        <p>
+          If you have any questions or concerns, feel free to contact us at
+          <a href="mailto:eventureoffic@gmail.com">eventureoffic@gmail.com</a>.
+        </p>
+
+        <p>Thank you for using Eventure!</p>
+        <p>— The Eventure Team</p>
+      </div>
+      <div class="footer">
+        © 2025 Eventure. All rights reserved.<br />
+        <a href="https://eventure.com">Visit our website</a>
+      </div>
+    </div>
+  </body>
+</html>

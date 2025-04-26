@@ -4,7 +4,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateVoucherDTO } from "./dto/create-voucher.dto";
 import { TransactionDTO } from "../transaction/dto/transaction.dto";
 import { eventNames } from "process";
-import { EventDTO } from "../events/dto/event.dto";
+import { EventDTO } from "../event/dto/event.dto";
 
 @injectable()
 export class VoucherService {

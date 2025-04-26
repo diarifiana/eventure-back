@@ -28,6 +28,22 @@ export class TransactionController {
     }
   };
 
+  updateTransaction = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result = await this.transactionService.updateTransaction(
+        Number(req.params.id),
+        req.body.action
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   uploadImage = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
