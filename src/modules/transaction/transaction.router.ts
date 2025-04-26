@@ -6,15 +6,21 @@ import { TransactionController } from "./transaction.controller";
 import { uploader } from "../../lib/multer";
 import { verifyToken } from "../../lib/jwt";
 import { verifyRole } from "../../middlewares/role.middleware";
+import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 
 @injectable()
 export class TransactionRouter {
   private router: Router;
   private transactionController: TransactionController;
+  private uploaderMiddleware: UploaderMiddleware;
 
-  constructor(TransactionController: TransactionController) {
+  constructor(
+    TransactionController: TransactionController,
+    UploaderMiddleware: UploaderMiddleware
+  ) {
     this.router = Router();
     this.transactionController = TransactionController;
+    this.uploaderMiddleware = UploaderMiddleware;
     this.initializeRoutes();
   }
 
@@ -27,6 +33,11 @@ export class TransactionRouter {
 
     this.router.post(
       "/upload",
+      this.uploaderMiddleware.fileFilter([
+        "image/jpeg",
+        "image/avif",
+        "image/png",
+      ]),
       uploader(1).fields([{ name: "thumbnail", maxCount: 1 }]),
       this.transactionController.uploadImage
     );

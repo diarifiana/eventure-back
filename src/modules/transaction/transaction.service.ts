@@ -1,5 +1,4 @@
 import { injectable } from "tsyringe";
-import { cloudinaryUpload } from "../../lib/cloudinary";
 import { ApiError } from "../../utils/api-error";
 import { PrismaService } from "../prisma/prisma.service";
 import { CouponService } from "./coupon.service";
@@ -8,21 +7,25 @@ import { PointService } from "./point.service";
 import { join } from "path";
 import { transporter } from "../../lib/nodemailer";
 import fs from "fs/promises";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
 
 @injectable()
 export class TransactionService {
   private prisma: PrismaService;
   private couponService: CouponService;
   private pointService: PointService;
+  private cloudinaryService: CloudinaryService;
 
   constructor(
     PrismaClient: PrismaService,
     CouponService: CouponService,
-    PointService: PointService
+    PointService: PointService,
+    CloudinaryService: CloudinaryService
   ) {
     this.prisma = PrismaClient;
     this.couponService = CouponService;
     this.pointService = PointService;
+    this.cloudinaryService = CloudinaryService;
   }
 
   createTransaction = async (body: TransactionDTO, authUserId: number) => {
@@ -145,8 +148,8 @@ export class TransactionService {
   };
 
   uploadImage = async (thumbnail: Express.Multer.File) => {
-    const { secure_url } = await cloudinaryUpload(thumbnail, "paymentProof");
+    const { secure_url } = await this.cloudinaryService.upload(thumbnail);
 
-    return { message: "Thumbnail uploaded" };
+    return { message: `Thumbnail uploaded ${secure_url}` };
   };
 }
