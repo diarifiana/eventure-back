@@ -32,13 +32,13 @@ export class TransactionRouter {
     );
 
     this.router.post(
-      "/upload",
+      "/upload/:id",
       this.uploaderMiddleware.fileFilter([
         "image/jpeg",
         "image/avif",
         "image/png",
       ]),
-      uploader(1).fields([{ name: "thumbnail", maxCount: 1 }]),
+      uploader(1).fields([{ name: "paymentProof", maxCount: 1 }]),
       this.transactionController.uploadImage
     );
 

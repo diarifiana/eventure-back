@@ -147,9 +147,25 @@ export class TransactionService {
     };
   };
 
-  uploadImage = async (thumbnail: Express.Multer.File) => {
-    const { secure_url } = await this.cloudinaryService.upload(thumbnail);
+  uploadImage = async (paymentProof: Express.Multer.File, id: number) => {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { id },
+    });
 
+    if (!transaction) {
+      throw new ApiError("No transaction", 400);
+    }
+
+    const { secure_url } = await this.cloudinaryService.upload(paymentProof);
+
+    await this.prisma.transaction.update({
+      where: {
+        id,
+      },
+      data: {
+        paymentProof: secure_url,
+      },
+    });
     return { message: `Thumbnail uploaded ${secure_url}` };
   };
 }

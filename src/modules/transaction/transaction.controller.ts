@@ -47,13 +47,16 @@ export class TransactionController {
   uploadImage = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      const picture = files.proofImage?.[0];
+      const picture = files.paymentProof?.[0];
 
       if (!picture) {
         throw new ApiError("No file upload", 400);
       }
 
-      const result = await this.transactionService.uploadImage(picture);
+      const result = await this.transactionService.uploadImage(
+        picture,
+        Number(req.params.id)
+      );
       res.status(200).send(result);
     } catch (error) {
       next(error);
