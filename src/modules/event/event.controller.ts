@@ -73,6 +73,32 @@ export class EventController {
     }
   };
 
+  getEventTickets = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.eventService.getEventTickets(
+        Number(req.params.id)
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getEventAttendees = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result = await this.eventService.getEventAttendees(
+        Number(req.params.id)
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.eventService.updateEvent(

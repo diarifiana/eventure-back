@@ -8,6 +8,7 @@ import { join } from "path";
 import { transporter } from "../../lib/nodemailer";
 import fs from "fs/promises";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
+import { eventNames } from "process";
 
 @injectable()
 export class TransactionService {
@@ -90,6 +91,93 @@ export class TransactionService {
     });
 
     return { messsage: "Created successfully", newData };
+  };
+
+  getTransactionsByUser = async (userId: number) => {
+    const transactions = await this.prisma.transaction.findMany({
+      where: { userId },
+    });
+
+    if (!transactions) {
+      throw new ApiError("No data", 400);
+    }
+
+    return transactions;
+  };
+
+  getTransactionTickets = async (id: number) => {
+    const tickets = await this.prisma.transaction.findMany({
+      where: { id },
+      select: { ticket: { select: { event: true } } },
+    });
+
+    if (!tickets) {
+      throw new ApiError("No data", 400);
+    }
+    return tickets;
+  };
+
+  getTransactionsByOrganizer = async (organizerId: number) => {
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        ticket: {
+          event: {
+            organizerId,
+          },
+        },
+      },
+    });
+
+    const totalTransaction = await this.prisma.transaction.aggregate({
+      where: {
+        ticket: {
+          event: {
+            organizerId,
+          },
+        },
+      },
+      _count: { id: true },
+    });
+
+    return { transactions: transactions, totalTransaction: totalTransaction };
+  };
+
+  getTransactionsRevenue = async (organizerId: number) => {
+    const revenue = await this.prisma.transaction.aggregate({
+      where: {
+        ticket: {
+          event: {
+            organizerId,
+          },
+        },
+      },
+      _sum: { totalAmount: true },
+    });
+
+    if (!revenue) {
+      throw new ApiError("No data", 400);
+    }
+
+    return revenue._sum;
+  };
+
+  getTransactionTotalTickets = async (organizerId: number) => {
+    const total = await this.prisma.transaction.aggregate({
+      where: {
+        ticket: {
+          event: {
+            organizerId,
+          },
+        },
+      },
+      _sum: { qty: true },
+    });
+
+    if (!total) {
+      throw new ApiError("No data", 400);
+    }
+
+    return total._sum;
   };
 
   updateTransaction = async (

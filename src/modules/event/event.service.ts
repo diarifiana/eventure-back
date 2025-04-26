@@ -97,6 +97,34 @@ export class EventService {
     });
   };
 
+  getEventTickets = async (id: number) => {
+    const tickets = await this.prisma.event.findMany({
+      where: { id },
+      select: { tickets: true },
+    });
+
+    return tickets;
+  };
+
+  getEventAttendees = async (id: number) => {
+    const attendee = await this.prisma.event.findFirst({
+      where: { id },
+      select: {
+        tickets: {
+          select: {
+            transactions: {
+              select: {
+                user: { select: { id: true, fullName: true, email: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return attendee?.tickets[0].transactions;
+  };
+
   updateEvent = async (id: number, body: Partial<EventDTO>) => {
     const event = await this.prisma.event.findFirst({
       where: { id: id },

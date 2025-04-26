@@ -7,7 +7,7 @@ import { verifyToken } from "../../lib/jwt";
 import { verifyRole } from "../../middlewares/role.middleware";
 
 @injectable()
-export class AuthRouter {
+export class EventRouter {
   private router: Router;
   private eventController: EventController;
 
@@ -34,6 +34,10 @@ export class AuthRouter {
       "/organizer/:id",
       this.eventController.getEventsByOrganizer
     );
+
+    this.router.get("/:id/tickets", this.eventController.getEventTickets);
+
+    this.router.get("/:id/attendees", this.eventController.getEventAttendees);
 
     this.router.get(
       "/category/:slug",

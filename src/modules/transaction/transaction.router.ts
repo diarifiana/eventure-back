@@ -31,6 +31,32 @@ export class TransactionRouter {
       this.transactionController.createTransaction
     );
 
+    this.router.get(
+      "/user",
+      verifyToken,
+      this.transactionController.getTransactionsByUser
+    );
+
+    this.router.get(
+      "/tickets/:id",
+      this.transactionController.getTransactionTickets
+    );
+
+    this.router.get(
+      "/organizers/:id",
+      this.transactionController.getTransactionsByOrganizer
+    );
+
+    this.router.get(
+      "/organizers/:id/revenue",
+      this.transactionController.getTransactionsRevenue
+    );
+
+    this.router.get(
+      "/organizers/:id/total-ticket",
+      this.transactionController.getTransactionTotalTickets
+    );
+
     this.router.post(
       "/upload/:id",
       this.uploaderMiddleware.fileFilter([

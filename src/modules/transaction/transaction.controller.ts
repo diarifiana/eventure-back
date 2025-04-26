@@ -28,6 +28,82 @@ export class TransactionController {
     }
   };
 
+  getTransactionsByUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId = res.locals.user.id;
+      const result = await this.transactionService.getTransactionsByUser(
+        userId
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionTickets = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const id = Number(req.params.id);
+      const result = await this.transactionService.getTransactionTickets(id);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionsByOrganizer = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const id = Number(req.params.id);
+      const result = await this.transactionService.getTransactionsByOrganizer(
+        id
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionsRevenue = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const id = Number(req.params.id);
+      const result = await this.transactionService.getTransactionsRevenue(id);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionTotalTickets = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const id = Number(req.params.id);
+      const result = await this.transactionService.getTransactionTotalTickets(
+        id
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateTransaction = async (
     req: Request,
     res: Response,
