@@ -15,6 +15,7 @@ import { RegisterDTO } from "./dto/register.dto";
 import { PasswordService } from "./password.service";
 import { ReferralService } from "./referral.service";
 import { TokenService } from "./token.service";
+import { ResetPasswordDTO } from "./dto/reset-password.dto";
 
 @injectable()
 export class AuthService {
@@ -230,5 +231,34 @@ export class AuthService {
     });
 
     return { message: "Account deleted successfully" };
+  };
+
+  resetPassword = async (body: ResetPasswordDTO, authUserId: number) => {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: authUserId,
+      },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    const hashedPassword = await this.passwordService.hashPassword(
+      body.password
+    );
+
+    await this.prisma.user.update({
+      where: {
+        id: authUserId,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return {
+      message: "Password reset successfully",
+    };
   };
 }

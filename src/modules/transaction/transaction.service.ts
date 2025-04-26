@@ -5,24 +5,20 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CouponService } from "./coupon.service";
 import { TransactionDTO } from "./dto/transaction.dto";
 import { PointService } from "./point.service";
-import { VoucherService } from "../voucher/voucher.service";
 
 @injectable()
 export class TransactionService {
   private prisma: PrismaService;
   private couponService: CouponService;
-  private voucherService: VoucherService;
   private pointService: PointService;
 
   constructor(
     PrismaClient: PrismaService,
     CouponService: CouponService,
-    VoucherService: VoucherService,
     PointService: PointService
   ) {
     this.prisma = PrismaClient;
     this.couponService = CouponService;
-    this.voucherService = VoucherService;
     this.pointService = PointService;
   }
 
@@ -39,13 +35,22 @@ export class TransactionService {
       throw new ApiError("Insufficient stock", 400);
     }
 
+    const voucher = await this.prisma.voucher.findFirst({
+      where: {
+        code: body.voucherCode,
+      },
+    });
+
+    if (!voucher || voucher?.eventId !== ticket.eventId || voucher.qty <= 0) {
+      throw new ApiError("Cannot claim voucher", 400);
+    }
+
     const couponAmount = this.couponService.validateCoupon(body);
-    const voucherAmount = this.voucherService.validateVoucher(body);
     const totalPoints = this.pointService.validatePoint(body);
 
     const totalToPay =
       ticket.price * body.qty -
-      ((await couponAmount) + (await voucherAmount) + (await totalPoints));
+      ((await couponAmount) + voucher.discountAmount + (await totalPoints));
     if (totalToPay < 0) {
       throw new ApiError("Discount cannot be claimed", 400);
     }
@@ -58,19 +63,15 @@ export class TransactionService {
         });
       }
 
-      if ((await voucherAmount) > 0) {
-        await tx.voucher.update({
-          where: { code: body.voucherCode },
-          data: { qty: { decrement: body.qty } },
-        });
-      }
+      await tx.voucher.update({
+        where: { code: body.voucherCode },
+        data: { qty: { decrement: body.qty } },
+      });
 
-      if ((await totalPoints) > 0) {
-        await tx.pointDetail.update({
-          where: { userId: body.userId },
-          data: { amount: 0 },
-        });
-      }
+      await tx.pointDetail.update({
+        where: { userId: body.userId },
+        data: { amount: 0 },
+      });
 
       await tx.ticket.update({
         where: { id: body.ticketId },

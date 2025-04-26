@@ -23,15 +23,12 @@ export class TransactionDTO {
   @IsString()
   readonly usePoints?: boolean;
 
-  @IsNotEmpty()
   @IsNumber()
   readonly totalAmount?: number;
 
-  @IsNotEmpty()
   @IsEnum(Status)
   readonly status?: Status;
 
-  @IsNotEmpty()
   @IsString()
   readonly paymentProof?: string;
 }

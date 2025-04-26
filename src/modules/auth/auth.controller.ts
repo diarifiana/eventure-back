@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
 import { AuthService } from "./auth.service";
-import { RegisterDTO } from "./dto/register.dto";
 
 @injectable()
 export class AuthController {
@@ -54,6 +53,19 @@ export class AuthController {
       const userId = res.locals.user.id; // dari token
 
       const result = await this.authService.deleteProfile(userId);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.authService.resetPassword(
+        req.body,
+        res.locals.user.id
+      );
+
       res.status(200).send(result);
     } catch (error) {
       next(error);

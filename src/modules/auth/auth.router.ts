@@ -6,15 +6,20 @@ import { RegisterDTO } from "./dto/register.dto";
 import { LoginDTO } from "./dto/login.dto";
 import { ForgotPasswordDTO } from "./dto/forgot-password.dto";
 import { UpdateProfileDTO } from "./dto/update-profile.dto";
+import { JWT_SECRET_KEY_FORGOT_PASSWORD } from "../../config";
+import { JwtMiddleware } from "../../middlewares/jwt.middleware";
+import { ResetPasswordDTO } from "./dto/reset-password.dto";
 
 @injectable()
 export class AuthRouter {
   private router: Router;
   private authController: AuthController;
+  private jwtMiddleware: JwtMiddleware;
 
-  constructor(AuthController: AuthController) {
+  constructor(AuthController: AuthController, JwtMiddleware: JwtMiddleware) {
     this.router = Router();
     this.authController = AuthController;
+    this.jwtMiddleware = JwtMiddleware;
     this.initializeRoutes();
   }
 
@@ -46,6 +51,13 @@ export class AuthRouter {
     this.router.delete(
       "/delete-profile/:id",
       this.authController.deleteProfile
+    );
+
+    this.router.patch(
+      "/reset-password",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY_FORGOT_PASSWORD!),
+      validateBody(ResetPasswordDTO),
+      this.authController.resetPassword
     );
   };
 
