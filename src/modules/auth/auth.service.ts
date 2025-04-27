@@ -16,6 +16,7 @@ import { PasswordService } from "./password.service";
 import { ReferralService } from "./referral.service";
 import { TokenService } from "./token.service";
 import { ResetPasswordDTO } from "./dto/reset-password.dto";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
 
 @injectable()
 export class AuthService {
@@ -23,6 +24,7 @@ export class AuthService {
   private passwordService: PasswordService;
   private tokenService: TokenService;
   private mailService: MailService;
+  private cloudinaryService: CloudinaryService;
   private referralService: ReferralService;
 
   constructor(
@@ -30,12 +32,14 @@ export class AuthService {
     PasswordService: PasswordService,
     TokenService: TokenService,
     MailService: MailService,
+    CloudinaryService: CloudinaryService,
     ReferralService: ReferralService
   ) {
     this.prisma = PrismaClient;
     this.passwordService = PasswordService;
     this.tokenService = TokenService;
     this.mailService = MailService;
+    this.cloudinaryService = CloudinaryService;
     this.referralService = ReferralService;
   }
 
@@ -194,13 +198,16 @@ export class AuthService {
     return { message: "Send email succsess" };
   };
 
-  updateProfile = async (id: number, body: Partial<RegisterDTO>) => {
+  updateProfile = async (authUserId: number, body: Partial<RegisterDTO>) => {
     const user = await this.prisma.user.findUnique({
-      where: { id: id },
+      where: { id: authUserId },
     });
 
     if (!user) {
       throw new ApiError("Invalid user id", 404);
+    }
+    if (user.isDeleted) {
+      throw new ApiError("User already deleted", 400);
     }
 
     if ("password" in body) {
@@ -208,9 +215,16 @@ export class AuthService {
     }
     const { password, ...updateData } = body;
 
+    const filteredData = Object.fromEntries(
+      Object.entries(updateData).filter(
+        ([_, value]) => value !== "" && value !== undefined && value !== null
+      )
+    );
+
+    console.log("Filtered Update data:", filteredData);
     await this.prisma.user.update({
-      where: { id: id, isDeleted: false },
-      data: updateData,
+      where: { id: authUserId },
+      data: filteredData,
     });
 
     return { message: "Profile updated successfully" };
@@ -260,5 +274,33 @@ export class AuthService {
     return {
       message: "Password reset successfully",
     };
+  };
+
+  uploadProfilePic = async (
+    authUserId: number,
+    profilePic: Express.Multer.File
+  ) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+    });
+
+    if (!user) {
+      throw new ApiError("Invalid user id", 404);
+    }
+    if (user.isDeleted) {
+      throw new ApiError("User already deleted", 400);
+    }
+
+    const { secure_url } = await this.cloudinaryService.upload(profilePic);
+
+    await this.prisma.user.update({
+      where: {
+        id: authUserId,
+      },
+      data: {
+        profilePic: secure_url,
+      },
+    });
+    return { message: `Profile picture uploaded ${secure_url}` };
   };
 }

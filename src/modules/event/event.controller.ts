@@ -1,10 +1,9 @@
-import { Location } from "@prisma/client";
 import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
 import { EventService } from "./event.service";
 import { plainToInstance } from "class-transformer";
 import { GetEventsDTO } from "./dto/get-events.dto";
-import { CategoryName } from "../../generated/prisma";
+import { CategoryName, Location } from "../../generated/prisma";
 
 @injectable()
 export class EventController {

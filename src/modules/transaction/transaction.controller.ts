@@ -120,7 +120,11 @@ export class TransactionController {
     }
   };
 
-  uploadImage = async (req: Request, res: Response, next: NextFunction) => {
+  uploadPaymentProof = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const picture = files.paymentProof?.[0];
@@ -129,7 +133,7 @@ export class TransactionController {
         throw new ApiError("No file upload", 400);
       }
 
-      const result = await this.transactionService.uploadImage(
+      const result = await this.transactionService.uploadPaymentProof(
         picture,
         Number(req.params.id)
       );

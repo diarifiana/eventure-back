@@ -9,6 +9,8 @@ import { transporter } from "../../lib/nodemailer";
 import fs from "fs/promises";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
 import { eventNames } from "process";
+import { MailService } from "../mail/mail.service";
+import Mail from "nodemailer/lib/mailer";
 
 @injectable()
 export class TransactionService {
@@ -16,17 +18,20 @@ export class TransactionService {
   private couponService: CouponService;
   private pointService: PointService;
   private cloudinaryService: CloudinaryService;
+  private mailService: MailService;
 
   constructor(
     PrismaClient: PrismaService,
     CouponService: CouponService,
     PointService: PointService,
-    CloudinaryService: CloudinaryService
+    CloudinaryService: CloudinaryService,
+    MailService: MailService
   ) {
     this.prisma = PrismaClient;
     this.couponService = CouponService;
     this.pointService = PointService;
     this.cloudinaryService = CloudinaryService;
+    this.mailService = MailService;
   }
 
   createTransaction = async (body: TransactionDTO, authUserId: number) => {
@@ -180,6 +185,18 @@ export class TransactionService {
     return total._sum;
   };
 
+  getTransactionPaymentProof = async (id: number) => {
+    const transaction = await this.prisma.transaction.findUnique({
+      where: { id },
+    });
+
+    if (!transaction) {
+      throw new ApiError("Transaction not found", 404);
+    }
+
+    return transaction;
+  };
+
   updateTransaction = async (
     transactionId: number,
     action: "accept" | "reject"
@@ -188,46 +205,92 @@ export class TransactionService {
       where: { id: transactionId },
       include: {
         user: true,
+        ticket: {
+          include: {
+            event: true,
+          },
+        },
       },
     });
 
+    // cek ada transactionnya gak
     if (!transaction) {
       throw new ApiError("Transaction not found", 404);
     }
-
+    // cek dlu apakah user udh bayar?
     if (transaction.status !== "WAITING_CONFIRMATION") {
       throw new ApiError("Transaction cannot be updated at this stage", 400);
+    }
+
+    // cek lagi udh up payment proof belom
+    if (!transaction.paymentProof) {
+      throw new ApiError("User has not uploaded payment proof", 400);
     }
 
     let updateStatus: "DONE" | "REJECTED";
     let templateFile: string;
     let emailSubject: string;
 
-    if (action === "accept") {
-      updateStatus = "DONE";
-      templateFile = "accepted-transaction-email.hbs";
-      emailSubject = "🎉 Your transaction has been accepted!";
-    } else {
+    if (action === "reject") {
       updateStatus = "REJECTED";
-      templateFile = "rejected-transaction-email.hbs";
-      emailSubject = "❌ Your transaction has been rejected";
+      templateFile = "rejected-transaction-email";
+      emailSubject = "❌ Your transaction has been rejected!";
+    } else {
+      updateStatus = "DONE";
+      templateFile = "accepted-transaction-email";
+      emailSubject = "🎉 Your transaction has been accepted";
     }
 
+    // kalo reject,
+    if (action === "reject") {
+      await this.prisma.$transaction(async (tx) => {
+        // kembaliin voucher
+        if (transaction.voucherId) {
+          await tx.voucher.update({
+            where: { id: transaction.voucherId },
+            data: { qty: { increment: transaction.qty } },
+          });
+        }
+        // kembaliin point
+        if (transaction.usePoints) {
+          await tx.pointDetail.update({
+            where: { userId: transaction.userId },
+            data: { amount: { increment: transaction.totalAmount } },
+          });
+        }
+        // kembaliin total toket
+        await tx.ticket.update({
+          where: { id: transaction.ticketId },
+          data: { qty: { increment: transaction.qty } },
+        });
+        // kembaliin referral kupon
+        if (transaction.referralCouponId) {
+          await tx.referralCoupon.update({
+            where: { id: transaction.referralCouponId },
+            data: { isClaimed: false },
+          });
+        }
+      });
+    }
+
+    // baru deh update transaksi trus abistu kirim email
     const updatedTransaction = await this.prisma.transaction.update({
       where: { id: transactionId },
       data: { status: updateStatus },
     });
 
-    const templatePath = join(__dirname, `../../templates/${templateFile}`);
-    const templateSource = await (await fs.readFile(templatePath)).toString();
-    const compiledTemplate = Handlebars.compile(templateSource);
-    const html = compiledTemplate({ fullName: transaction.user.fullName });
-
-    await transporter.sendMail({
-      to: transaction.user.email,
-      subject: emailSubject,
-      html,
-    });
+    await this.mailService.sendEmail(
+      transaction.user.email,
+      emailSubject,
+      templateFile,
+      {
+        name: transaction.user.fullName,
+        transactionId: transaction.id,
+        transactionAmount: transaction.totalAmount,
+        eventName: transaction.ticket.event.name,
+        transactionDate: transaction.createdAt,
+      }
+    );
 
     return {
       message: `Transaction ${action}ed successfully`,
@@ -235,7 +298,10 @@ export class TransactionService {
     };
   };
 
-  uploadImage = async (paymentProof: Express.Multer.File, id: number) => {
+  uploadPaymentProof = async (
+    paymentProof: Express.Multer.File,
+    id: number
+  ) => {
     const transaction = await this.prisma.transaction.findFirst({
       where: { id },
     });
@@ -252,8 +318,9 @@ export class TransactionService {
       },
       data: {
         paymentProof: secure_url,
+        status: "WAITING_CONFIRMATION",
       },
     });
-    return { message: `Thumbnail uploaded ${secure_url}` };
+    return { message: `Payment proof uploaded ${secure_url}` };
   };
 }

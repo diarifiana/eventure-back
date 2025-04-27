@@ -34,38 +34,49 @@ export class TransactionRouter {
     this.router.get(
       "/user",
       verifyToken,
+      verifyRole(["USER"]),
       this.transactionController.getTransactionsByUser
     );
 
     this.router.get(
       "/tickets/:id",
+      verifyToken,
       this.transactionController.getTransactionTickets
     );
 
     this.router.get(
       "/organizers/:id",
+      verifyToken,
+      verifyRole(["ADMIN"]),
       this.transactionController.getTransactionsByOrganizer
     );
 
     this.router.get(
       "/organizers/:id/revenue",
+      verifyToken,
+      verifyRole(["ADMIN"]),
       this.transactionController.getTransactionsRevenue
     );
 
     this.router.get(
       "/organizers/:id/total-ticket",
+      verifyToken,
+      verifyRole(["ADMIN"]),
       this.transactionController.getTransactionTotalTickets
     );
 
     this.router.post(
       "/upload/:id",
+      verifyToken,
+      verifyRole(["USER"]),
       this.uploaderMiddleware.fileFilter([
         "image/jpeg",
         "image/avif",
         "image/png",
+        "image/webp",
       ]),
       uploader(1).fields([{ name: "paymentProof", maxCount: 1 }]),
-      this.transactionController.uploadImage
+      this.transactionController.uploadPaymentProof
     );
 
     this.router.patch(
