@@ -39,7 +39,7 @@ export class MailService {
     const html = await this.renderTemplate(templateName, context);
 
     await this.transporter.sendMail({
-      from: "Blog app",
+      from: "Eventure",
       to: to,
       subject: subject,
       html: html,

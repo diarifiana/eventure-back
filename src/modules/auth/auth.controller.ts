@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
 import { AuthService } from "./auth.service";
+import { ApiError } from "../../utils/api-error";
 
 @injectable()
 export class AuthController {
@@ -39,9 +40,11 @@ export class AuthController {
 
   updateProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = res.locals.user.id; // dari token
-
-      const result = await this.authService.updateProfile(userId, req.body);
+      // const userId = res.locals.user.id; // dari token
+      const result = await this.authService.updateProfile(
+        res.locals.user.id,
+        req.body
+      );
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -67,6 +70,36 @@ export class AuthController {
       );
 
       res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadProfilePic = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      if (!req.file) {
+        throw new ApiError("Please upload a profile picture", 400);
+      }
+
+      const userId = res.locals.user?.id;
+      if (!userId) {
+        throw new ApiError("User ID not found in request", 401);
+      }
+
+      const picture = req.file;
+
+      const result = (await this.authService.uploadProfilePic(
+        userId,
+        picture
+      )) as { message: string; imageUrl: string };
+
+      res
+        .status(200)
+        .send(`${result.message}. Profile picture URL: ${result.imageUrl}`);
     } catch (error) {
       next(error);
     }

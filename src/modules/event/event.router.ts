@@ -32,12 +32,17 @@ export class EventRouter {
 
     this.router.get(
       "/organizer/:id",
+      verifyRole(["ADMIN"]),
       this.eventController.getEventsByOrganizer
     );
 
     this.router.get("/:id/tickets", this.eventController.getEventTickets);
 
-    this.router.get("/:id/attendees", this.eventController.getEventAttendees);
+    this.router.get(
+      "/:id/attendees",
+      verifyRole(["ADMIN"]),
+      this.eventController.getEventAttendees
+    );
 
     this.router.get(
       "/category/:slug",

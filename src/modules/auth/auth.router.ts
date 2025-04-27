@@ -6,7 +6,7 @@ import { RegisterDTO } from "./dto/register.dto";
 import { LoginDTO } from "./dto/login.dto";
 import { ForgotPasswordDTO } from "./dto/forgot-password.dto";
 import { UpdateProfileDTO } from "./dto/update-profile.dto";
-import { JWT_SECRET_KEY_FORGOT_PASSWORD } from "../../config";
+import { JWT_SECRET_KEY, JWT_SECRET_KEY_FORGOT_PASSWORD } from "../../config";
 import { JwtMiddleware } from "../../middlewares/jwt.middleware";
 import { ResetPasswordDTO } from "./dto/reset-password.dto";
 
@@ -44,6 +44,7 @@ export class AuthRouter {
 
     this.router.patch(
       "/update-profile",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       validateBody(UpdateProfileDTO),
       this.authController.updateProfile
     );
@@ -58,6 +59,12 @@ export class AuthRouter {
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY_FORGOT_PASSWORD!),
       validateBody(ResetPasswordDTO),
       this.authController.resetPassword
+    );
+
+    this.router.patch(
+      "/upload-profile-picture",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      this.authController.uploadProfilePic
     );
   };
 
