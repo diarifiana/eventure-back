@@ -63,9 +63,9 @@ export class EventController {
     next: NextFunction
   ) => {
     try {
-      const result = await this.eventService.getEventsByLocation({
-        location: req.params.slug as Location,
-      });
+      const query = plainToInstance(GetEventsDTO, req.query);
+      const slug = req.params.slug as Location;
+      const result = await this.eventService.getEventsByLocation(slug, query);
       res.status(200).send(result);
     } catch (error) {
       next(error);

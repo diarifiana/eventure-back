@@ -3,7 +3,7 @@ import { ApiError } from "../../utils/api-error";
 import { generateSlug } from "../../utils/generateSlug";
 import { injectable } from "tsyringe";
 import { EventDTO } from "./dto/event.dto";
-import { CategoryName, Prisma } from "../../generated/prisma";
+import { CategoryName, Location, Prisma } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-events.dto";
 
 @injectable()
@@ -92,10 +92,31 @@ export class EventService {
     return data;
   };
 
-  getEventsByLocation = async (body: Pick<EventDTO, "location">) => {
-    return await this.prisma.event.findMany({
-      where: { location: body.location },
+  getEventsByLocation = async (location: Location, query: GetEventsDTO) => {
+    const { page, take, sortBy, sortOrder, search } = query;
+
+    const whereClause: Prisma.EventWhereInput = {
+      isDeleted: false,
+      location: location,
+    };
+
+    if (search) {
+      whereClause.name = { contains: search, mode: "insensitive" };
+    }
+
+    const events = await this.prisma.event.findMany({
+      where: whereClause,
+      include: { tickets: true, organizer: true },
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * take,
+      take,
     });
+
+    const count = await this.prisma.event.count({ where: whereClause });
+    return {
+      data: events,
+      meta: { page, take, total: count },
+    };
   };
 
   getEventTickets = async (id: number) => {
