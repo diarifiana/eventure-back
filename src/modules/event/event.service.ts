@@ -45,6 +45,7 @@ export class EventService {
 
     const events = await this.prisma.event.findMany({
       where: whereClause,
+      include: { tickets: true, organizer: true },
       orderBy: { [sortBy]: sortOrder },
       skip: (page - 1) * take,
       take,
