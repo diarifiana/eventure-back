@@ -75,31 +75,58 @@ export class AuthController {
     }
   };
 
+  changePassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.authService.changePassword(
+        res.locals.user.id,
+        req.body
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   uploadProfilePic = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try {
-      if (!req.file) {
+      // console.log("req.file di controller:", req.file);
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const picture = files.profilePic?.[0];
+      const userId = res.locals.user?.id;
+
+      if (!files) {
         throw new ApiError("Please upload a profile picture", 400);
       }
 
+      const result = await this.authService.uploadProfilePic(userId, picture);
+
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadOrganizerPic = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const picture = files.profilePic?.[0];
       const userId = res.locals.user?.id;
-      if (!userId) {
-        throw new ApiError("User ID not found in request", 401);
+
+      if (!files || !picture) {
+        throw new ApiError("Please upload a profile picture", 400);
       }
 
-      const picture = req.file;
+      const result = await this.authService.uploadOrganizerPic(userId, picture);
 
-      const result = (await this.authService.uploadProfilePic(
-        userId,
-        picture
-      )) as { message: string; imageUrl: string };
-
-      res
-        .status(200)
-        .send(`${result.message}. Profile picture URL: ${result.imageUrl}`);
+      res.status(200).send(result);
     } catch (error) {
       next(error);
     }
