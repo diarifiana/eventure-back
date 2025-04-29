@@ -35,5 +35,5 @@ export class EventDTO {
 
   @IsNotEmpty()
   @IsString()
-  readonly thumbnail?: string;
+  readonly thumbnail!: string;
 }
