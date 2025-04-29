@@ -27,7 +27,7 @@ model User {
   email          String
   password       String
   role           Role             @default(USER)
-  profilePic     String?
+  profilePic     String
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   isDeleted      Boolean          @default(false)
@@ -46,7 +46,7 @@ model Organizer {
   user       User     @relation(fields: [userId], references: [id])
   name       String
   aboutUs    String?
-  profilePic String?
+  profilePic String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   isDeleted  Boolean  @default(false)
@@ -96,7 +96,7 @@ model Event {
   startDate   DateTime
   endDate     DateTime
   location    Location
-  thumbnail   String?
+  thumbnail   String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   isDeleted   Boolean   @default(false)

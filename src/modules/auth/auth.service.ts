@@ -7,16 +7,17 @@ import {
 } from "../../config";
 import { addMonths } from "../../utils/addMonth";
 import { ApiError } from "../../utils/api-error";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
 import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { ChangePasswordDTO } from "./dto/change-password.dto";
 import { ForgotPasswordDTO } from "./dto/forgot-password.dto";
 import { LoginDTO } from "./dto/login.dto";
 import { RegisterDTO } from "./dto/register.dto";
+import { ResetPasswordDTO } from "./dto/reset-password.dto";
 import { PasswordService } from "./password.service";
 import { ReferralService } from "./referral.service";
 import { TokenService } from "./token.service";
-import { ResetPasswordDTO } from "./dto/reset-password.dto";
-import { CloudinaryService } from "../cloudinary/cloudinary.service";
 
 @injectable()
 export class AuthService {
@@ -69,6 +70,8 @@ export class AuthService {
           password: hashedPassword,
           referralNumber: code,
           role: organizerName ? "ADMIN" : "USER",
+          profilePic:
+            "https://res.cloudinary.com/dsxiuvsls/image/upload/v1745763207/banner_gacor_lek_1791_x_398_mm_u0iq4a.webp",
         },
       });
 
@@ -77,6 +80,8 @@ export class AuthService {
           data: {
             userId: createdUser.id,
             name: organizerName,
+            profilePic:
+              "https://res.cloudinary.com/dsxiuvsls/image/upload/v1745763207/banner_gacor_lek_1791_x_398_mm_u0iq4a.webp",
           },
         });
       }
@@ -143,6 +148,9 @@ export class AuthService {
 
     const existingUser = await this.prisma.user.findFirst({
       where: { email },
+      include: {
+        organizer: true,
+      },
     });
 
     if (!existingUser) {
@@ -302,5 +310,73 @@ export class AuthService {
       },
     });
     return { message: `Profile picture uploaded ${secure_url}` };
+  };
+
+  changePassword = async (authUserId: number, body: ChangePasswordDTO) => {
+    const user = await this.prisma.user.findFirst({
+      where: { id: authUserId },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    const isPasswordValid = await this.passwordService.comparePassword(
+      body.oldPassword,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      throw new ApiError("Old password is incorrect", 401);
+    }
+
+    const hashedNewPassword = await this.passwordService.hashPassword(
+      body.newPassword
+    );
+
+    await this.prisma.user.update({
+      where: { id: authUserId },
+      data: { password: hashedNewPassword },
+    });
+
+    return {
+      message: "Password changed successfully",
+    };
+  };
+
+  uploadOrganizerPic = async (
+    authUserId: number,
+    profilePic: Express.Multer.File
+  ) => {
+    // Cari user
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: {
+        organizer: true, // include relasi ke organizer
+      },
+    });
+
+    if (!user) {
+      throw new ApiError("Invalid user id", 404);
+    }
+
+    if (user.isDeleted) {
+      throw new ApiError("User already deleted", 400);
+    }
+
+    if (!user.organizer) {
+      throw new ApiError("User does not have an organizer", 400);
+    }
+
+    const organizerId = user.organizer.id;
+
+    const { secure_url } = await this.cloudinaryService.upload(profilePic);
+
+    await this.prisma.organizer.update({
+      where: { id: organizerId },
+      data: { profilePic: secure_url },
+    });
+
+    return { message: `Organizer profile picture uploaded ${secure_url}` };
   };
 }

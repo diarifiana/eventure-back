@@ -9,17 +9,27 @@ import { UpdateProfileDTO } from "./dto/update-profile.dto";
 import { JWT_SECRET_KEY, JWT_SECRET_KEY_FORGOT_PASSWORD } from "../../config";
 import { JwtMiddleware } from "../../middlewares/jwt.middleware";
 import { ResetPasswordDTO } from "./dto/reset-password.dto";
+import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
+import { uploader } from "../../lib/multer";
+import { verifyToken } from "../../lib/jwt";
+import { ChangePasswordDTO } from "./dto/change-password.dto";
 
 @injectable()
 export class AuthRouter {
   private router: Router;
   private authController: AuthController;
   private jwtMiddleware: JwtMiddleware;
+  private uploaderMiddleware: UploaderMiddleware;
 
-  constructor(AuthController: AuthController, JwtMiddleware: JwtMiddleware) {
+  constructor(
+    AuthController: AuthController,
+    JwtMiddleware: JwtMiddleware,
+    UploaderMiddleware: UploaderMiddleware
+  ) {
     this.router = Router();
     this.authController = AuthController;
     this.jwtMiddleware = JwtMiddleware;
+    this.uploaderMiddleware = UploaderMiddleware;
     this.initializeRoutes();
   }
 
@@ -60,10 +70,23 @@ export class AuthRouter {
       validateBody(ResetPasswordDTO),
       this.authController.resetPassword
     );
-
     this.router.patch(
+      "/change-password",
+      verifyToken,
+      validateBody(ChangePasswordDTO),
+      this.authController.changePassword
+    );
+
+    this.router.post(
       "/upload-profile-picture",
-      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyToken,
+      this.uploaderMiddleware.fileFilter([
+        "image/jpeg",
+        "image/avif",
+        "image/png",
+        "image/webp",
+      ]),
+      uploader(1).fields([{ name: "profilePic", maxCount: 1 }]),
       this.authController.uploadProfilePic
     );
   };
