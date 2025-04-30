@@ -23,7 +23,7 @@ export class App {
   }
 
   private configure() {
-    this.app.use(cors());
+    this.app.use(cors()); // Cross-Origin Resource Sharing
     this.app.use(json());
   }
 

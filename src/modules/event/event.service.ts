@@ -32,6 +32,7 @@ export class EventService {
     return { message: "Created successfully", eventNew };
   };
 
+  // DTO Data Transfer Object yang mendefinisikan struktur data yang diharapkan untuk parameter query
   getEvents = async (query: GetEventsDTO) => {
     const { page, take, sortBy, sortOrder, search } = query;
 
@@ -47,6 +48,7 @@ export class EventService {
       where: whereClause,
       include: { tickets: true, organizer: true },
       orderBy: { [sortBy]: sortOrder },
+      // sortBy created at, sortOrder desc?
       skip: (page - 1) * take,
       take,
     });
@@ -61,6 +63,7 @@ export class EventService {
   getEvent = async (slug: string) => {
     const data = await this.prisma.event.findFirst({
       where: { slug },
+      include: { category: true, organizer: true },
     });
 
     if (!data) {
@@ -84,7 +87,7 @@ export class EventService {
     const data = await this.prisma.event.findMany({
       where: {
         category: {
-          name: category,
+          name: category.toUpperCase() as CategoryName,
         },
       },
     });
@@ -162,7 +165,7 @@ export class EventService {
       if (existingEvent && existingEvent.id !== id) {
         throw new ApiError("Product name already exists", 400);
       }
-      body.slug = generateSlug(body.name);
+      const slug = generateSlug(body.name);
     }
 
     await this.prisma.event.update({
