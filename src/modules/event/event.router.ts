@@ -28,7 +28,7 @@ export class EventRouter {
 
     this.router.get("/", this.eventController.getEvents);
 
-    this.router.get("/:id", this.eventController.getEvent);
+    this.router.get("/:slug", this.eventController.getEvent);
 
     this.router.get(
       "/organizer/:id",

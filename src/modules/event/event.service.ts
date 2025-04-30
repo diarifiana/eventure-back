@@ -61,7 +61,7 @@ export class EventService {
   };
 
   getEvent = async (slug: string) => {
-    const data = await this.prisma.event.findFirst({
+    const data = await this.prisma.event.findUnique({
       where: { slug },
       include: { category: true, organizer: true },
     });
@@ -83,16 +83,32 @@ export class EventService {
     return events;
   };
 
-  getEventsByCategory = async (category: CategoryName) => {
-    const data = await this.prisma.event.findMany({
-      where: {
-        category: {
-          name: category.toUpperCase() as CategoryName,
-        },
-      },
+  getEventsByCategory = async (slug: CategoryName, query: GetEventsDTO) => {
+    const { page, take, sortBy, sortOrder, search } = query;
+
+    const whereClause: Prisma.EventWhereInput = {
+      isDeleted: false,
+      category: { name: slug.toUpperCase() as CategoryName },
+    };
+
+    if (search) {
+      whereClause.name = { contains: search, mode: "insensitive" };
+    }
+
+    const events = await this.prisma.event.findMany({
+      where: whereClause,
+      include: { tickets: true, organizer: true },
+      orderBy: { [sortBy]: sortOrder },
+      // sortBy created at, sortOrder desc?
+      skip: (page - 1) * take,
+      take,
     });
 
-    return data;
+    const count = await this.prisma.event.count({ where: whereClause });
+    return {
+      data: events,
+      meta: { page, take, total: count },
+    };
   };
 
   getEventsByLocation = async (location: Location, query: GetEventsDTO) => {

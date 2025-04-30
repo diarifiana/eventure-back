@@ -34,7 +34,8 @@ export class EventController {
 
   getEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.getEvent(req.params.slug);
+      const slug = req.params.slug;
+      const result = await this.eventService.getEvent(slug);
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -47,9 +48,9 @@ export class EventController {
     next: NextFunction
   ) => {
     try {
-      const result = await this.eventService.getEventsByCategory(
-        req.params.slug as CategoryName
-      );
+      const slug = req.params.slug as CategoryName;
+      const query = plainToInstance(GetEventsDTO, req.query);
+      const result = await this.eventService.getEventsByCategory(slug, query);
 
       res.status(200).send(result);
     } catch (error) {
