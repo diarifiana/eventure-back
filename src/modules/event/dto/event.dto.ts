@@ -1,17 +1,15 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
 import { Location } from "../../../generated/prisma";
+import { Transform } from "class-transformer";
 
 export class EventDTO {
   @IsNotEmpty()
-  @IsNumber()
-  readonly categoryId!: number;
+  @Transform(({ value }) => Number(value))
+  categoryId!: number;
 
   @IsNotEmpty()
-  @IsNumber()
+  @Transform(({ value }) => Number(value))
   readonly organizerId!: number;
-
-  @IsString()
-  slug!: string;
 
   @IsNotEmpty()
   @IsString()
@@ -32,8 +30,4 @@ export class EventDTO {
   @IsNotEmpty()
   @IsEnum(Location)
   readonly location!: Location;
-
-  @IsNotEmpty()
-  @IsString()
-  readonly thumbnail!: string;
 }

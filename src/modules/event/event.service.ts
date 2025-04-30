@@ -5,16 +5,22 @@ import { injectable } from "tsyringe";
 import { EventDTO } from "./dto/event.dto";
 import { CategoryName, Location, Prisma } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-events.dto";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
 
 @injectable()
 export class EventService {
   private prisma: PrismaService;
+  private cloudinaryService: CloudinaryService;
 
-  constructor(PrismaClient: PrismaService) {
+  constructor(
+    PrismaClient: PrismaService,
+    CloudinaryService: CloudinaryService
+  ) {
     this.prisma = PrismaClient;
+    this.cloudinaryService = CloudinaryService;
   }
 
-  createEvent = async (body: EventDTO) => {
+  createEvent = async (body: EventDTO, picture: Express.Multer.File) => {
     const existing = await this.prisma.event.findFirst({
       where: { name: body.name },
     });
@@ -25,8 +31,12 @@ export class EventService {
 
     const slug = generateSlug(body.name);
 
+    // cloudinary
+    const { secure_url } = await this.cloudinaryService.upload(picture);
+    console.log(body);
+
     const eventNew = await this.prisma.event.create({
-      data: { ...body, slug },
+      data: { ...body, slug: slug, thumbnail: secure_url },
     });
 
     return { message: "Created successfully", eventNew };

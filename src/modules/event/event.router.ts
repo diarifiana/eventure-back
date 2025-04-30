@@ -5,15 +5,22 @@ import { EventController } from "./event.controller";
 import { EventDTO } from "./dto/event.dto";
 import { verifyToken } from "../../lib/jwt";
 import { verifyRole } from "../../middlewares/role.middleware";
+import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
+import { uploader } from "../../lib/multer";
 
 @injectable()
 export class EventRouter {
   private router: Router;
   private eventController: EventController;
+  private uploaderMiddleware: UploaderMiddleware;
 
-  constructor(EventController: EventController) {
+  constructor(
+    EventController: EventController,
+    UploaderMiddleware: UploaderMiddleware
+  ) {
     this.router = Router();
     this.eventController = EventController;
+    this.uploaderMiddleware = UploaderMiddleware;
     this.initializeRoutes();
   }
 
@@ -22,6 +29,14 @@ export class EventRouter {
       "/",
       verifyToken,
       verifyRole(["ADMIN"]),
+      uploader(1).fields([{ name: "thumbnail", maxCount: 1 }]),
+      this.uploaderMiddleware.fileFilter([
+        "image/jpeg",
+        "image/avif",
+        "image/png",
+        "image/webp",
+      ]),
+
       validateBody(EventDTO),
       this.eventController.createEvent
     );

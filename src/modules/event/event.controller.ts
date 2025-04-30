@@ -4,18 +4,37 @@ import { EventService } from "./event.service";
 import { plainToInstance } from "class-transformer";
 import { GetEventsDTO } from "./dto/get-events.dto";
 import { CategoryName, Location } from "../../generated/prisma";
+import { ApiError } from "../../utils/api-error";
+import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
+import { EventDTO } from "./dto/event.dto";
 
 @injectable()
 export class EventController {
   private eventService: EventService;
+  private uploaderMiddleware: UploaderMiddleware;
 
-  constructor(EventService: EventService) {
+  constructor(
+    EventService: EventService,
+    UploaderMiddleware: UploaderMiddleware
+  ) {
     this.eventService = EventService;
+    this.uploaderMiddleware = UploaderMiddleware;
   }
 
   createEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.createEvent(req.body);
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const picture = files.thumbnail?.[0];
+      const body = plainToInstance(EventDTO, req.body);
+
+      // const userId = res.locals.user?.id;
+
+      if (!files) {
+        throw new ApiError("No files selected", 400);
+      }
+
+      const result = await this.eventService.createEvent(body, picture);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
