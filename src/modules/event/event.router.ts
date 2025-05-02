@@ -7,19 +7,23 @@ import { verifyToken } from "../../lib/jwt";
 import { verifyRole } from "../../middlewares/role.middleware";
 import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { uploader } from "../../lib/multer";
+import { JWT_SECRET_KEY } from "../../config";
+import { JwtMiddleware } from "../../middlewares/jwt.middleware";
 
 @injectable()
 export class EventRouter {
   private router: Router;
   private eventController: EventController;
   private uploaderMiddleware: UploaderMiddleware;
-
+  private jwtMiddleware: JwtMiddleware;
   constructor(
     EventController: EventController,
-    UploaderMiddleware: UploaderMiddleware
+    UploaderMiddleware: UploaderMiddleware,
+    JwtMiddleware: JwtMiddleware
   ) {
     this.router = Router();
     this.eventController = EventController;
+    this.jwtMiddleware = JwtMiddleware;
     this.uploaderMiddleware = UploaderMiddleware;
     this.initializeRoutes();
   }
@@ -47,6 +51,7 @@ export class EventRouter {
 
     this.router.get(
       "/organizer/:id",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
       this.eventController.getEventsByOrganizer
     );

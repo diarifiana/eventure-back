@@ -1,6 +1,6 @@
 import cors from "cors";
-import express, { Express, json } from "express";
 import "reflect-metadata";
+import express, { Express, json } from "express";
 import { container } from "tsyringe";
 import { PORT } from "./config";
 import { errorMiddleware } from "./middlewares/error.middleware";
@@ -11,6 +11,7 @@ import { ReviewRouter } from "./modules/review/review.router";
 import { VoucherRouter } from "./modules/voucher/voucher.router";
 import { EventRouter } from "./modules/event/event.router";
 import { OrganizerRouter } from "./modules/organizer/organizer.router";
+import { ProfileRouter } from "./modules/profile/profile.router";
 
 export class App {
   public app: Express;
@@ -23,7 +24,7 @@ export class App {
   }
 
   private configure() {
-    this.app.use(cors()); // Cross-Origin Resource Sharing
+    this.app.use(cors({ origin: "http://localhost:3000", credentials: true }));
     this.app.use(json());
   }
 
@@ -35,6 +36,7 @@ export class App {
     const voucherRouter = container.resolve(VoucherRouter);
     const eventRouter = container.resolve(EventRouter);
     const organizerRouter = container.resolve(OrganizerRouter);
+    const profileRouter = container.resolve(ProfileRouter);
 
     this.app.use("/samples", sampleRouter.getRouter());
     this.app.use("/auth", authRouter.getRouter());
@@ -43,6 +45,7 @@ export class App {
     this.app.use("/vouchers", voucherRouter.getRouter());
     this.app.use("/events", eventRouter.getRouter());
     this.app.use("/organizers", organizerRouter.getRouter());
+    this.app.use("/profiles", profileRouter.getRouter());
   }
 
   private handleError() {

@@ -18,6 +18,8 @@ import { ResetPasswordDTO } from "./dto/reset-password.dto";
 import { PasswordService } from "./password.service";
 import { ReferralService } from "./referral.service";
 import { TokenService } from "./token.service";
+import { sign } from "jsonwebtoken";
+import { access } from "fs";
 
 @injectable()
 export class AuthService {
@@ -137,7 +139,7 @@ export class AuthService {
       "Welcome To Eventure",
       "welcome-email",
       {
-        fullname: fullName,
+        name: fullName,
       }
     );
     return newUser;
@@ -167,7 +169,7 @@ export class AuthService {
     }
 
     const accessToken = this.tokenService.generateToken(
-      { id: existingUser.id },
+      { id: existingUser.id, role: existingUser.role },
       JWT_SECRET_KEY!,
       { expiresIn: "2h" }
     );
@@ -230,12 +232,25 @@ export class AuthService {
     );
 
     console.log("Filtered Update data:", filteredData);
-    await this.prisma.user.update({
+
+    const updatedUser = await this.prisma.user.update({
       where: { id: authUserId },
       data: filteredData,
     });
 
-    return { message: "Profile updated successfully" };
+    const tokenPayload = {
+      id: updatedUser.id,
+      role: updatedUser.role,
+    };
+
+    const token = sign(tokenPayload, JWT_SECRET_KEY as string, {
+      expiresIn: "1h",
+    });
+
+    return {
+      data: { ...updatedUser, accessToken: token },
+      message: "Profile updated successfully",
+    };
   };
 
   deleteProfile = async (id: number) => {
@@ -301,7 +316,7 @@ export class AuthService {
 
     const { secure_url } = await this.cloudinaryService.upload(profilePic);
 
-    await this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: {
         id: authUserId,
       },
@@ -309,7 +324,22 @@ export class AuthService {
         profilePic: secure_url,
       },
     });
-    return { message: `Profile picture uploaded ${secure_url}` };
+    const tokenPayload = {
+      id: updatedUser.id,
+      role: updatedUser.role,
+    };
+
+    const token = sign(tokenPayload, JWT_SECRET_KEY as string, {
+      expiresIn: "1h",
+    });
+
+    return {
+      message: "Profile picture uploaded successfully",
+      data: {
+        ...updatedUser,
+        accessToken: token,
+      },
+    };
   };
 
   changePassword = async (authUserId: number, body: ChangePasswordDTO) => {
@@ -318,7 +348,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new ApiError("User not found", 404);
+      throw new ApiError("User not found", 401);
     }
 
     const isPasswordValid = await this.passwordService.comparePassword(
@@ -327,7 +357,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new ApiError("Old password is incorrect", 401);
+      throw new ApiError("Old password is incorrect", 404);
     }
 
     const hashedNewPassword = await this.passwordService.hashPassword(
@@ -352,7 +382,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {
-        organizer: true, // include relasi ke organizer
+        organizer: true,
       },
     });
 

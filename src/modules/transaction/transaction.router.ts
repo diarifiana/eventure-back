@@ -39,13 +39,6 @@ export class TransactionRouter {
     );
 
     this.router.get(
-      "/user",
-      verifyToken,
-      verifyRole(["USER"]),
-      this.transactionController.getTransactionsByUser
-    );
-
-    this.router.get(
       "/tickets/:id",
       verifyToken,
       this.transactionController.getTransactionTickets

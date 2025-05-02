@@ -87,6 +87,7 @@ export class EventService {
     const events = await this.prisma.event.findMany({
       where: { organizerId, isDeleted: false },
     });
+
     if (!events) {
       throw new Error("Event not found");
     }
