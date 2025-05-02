@@ -6,6 +6,7 @@ import { EventDTO } from "./dto/event.dto";
 import { CategoryName, Location, Prisma } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-events.dto";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
+import { UpdateEventDTO } from "./dto/update-event.dto";
 
 @injectable()
 export class EventService {
@@ -177,28 +178,46 @@ export class EventService {
     return attendee?.tickets[0].transactions;
   };
 
-  updateEvent = async (id: number, body: Partial<EventDTO>) => {
-    const event = await this.prisma.event.findFirst({
-      where: { id: id },
+  updateEvent = async (id: number, body: Partial<UpdateEventDTO>) => {
+    const existingEvent = await this.prisma.event.findFirst({
+      where: { id },
+      include: { category: true },
     });
-    if (!event) {
+
+    if (!existingEvent) {
       throw new ApiError("Event not found", 404);
     }
 
-    if (body.name) {
-      const existingEvent = await this.prisma.event.findFirst({
+    // Cek dan validasi nama baru
+    if (body.name && body.name !== existingEvent.name) {
+      const duplicate = await this.prisma.event.findFirst({
         where: { name: body.name },
       });
-      if (existingEvent && existingEvent.id !== id) {
-        throw new ApiError("Product name already exists", 400);
+
+      if (duplicate && duplicate.id !== id) {
+        throw new ApiError("Event name already exists", 400);
       }
-      const slug = generateSlug(body.name);
+    }
+
+    // Generate slug jika nama berubah
+    const updatedData: any = {
+      name: body.name ?? existingEvent.name,
+      desc: body.desc ?? existingEvent.desc,
+      startDate: body.startDate ?? existingEvent.startDate,
+      endDate: body.endDate ?? existingEvent.endDate,
+      category: body.category ?? existingEvent.category.name,
+      location: body.location ?? existingEvent.location,
+    };
+
+    if (body.name && body.name !== existingEvent.name) {
+      updatedData.slug = generateSlug(body.name);
     }
 
     await this.prisma.event.update({
-      where: { id: id },
-      data: body,
+      where: { id },
+      data: updatedData,
     });
+
     return { message: "Updated successfully" };
   };
 
