@@ -12,19 +12,16 @@ export class ReviewService {
   }
 
   createReview = async (body: CreateReviewDTO) => {
-    const transaction = await this.prisma.transaction.findFirst({
-      where: { id: body.transactionId },
-    });
-
-    if (!transaction || (await transaction).status !== "DONE") {
-      throw new ApiError("Cannot submit review", 400);
-    }
-
-    const newData = await this.prisma.review.create({
-      data: body,
-    });
-
-    return { message: "Created successfully", newData };
+    // const transaction = await this.prisma.transaction.findFirst({
+    //   where: { id: body.transactionId },
+    // });
+    // if (!transaction || (await transaction).status !== "DONE") {
+    //   throw new ApiError("Cannot submit review", 400);
+    // }
+    // const newData = await this.prisma.review.create({
+    //   data: body,
+    // });
+    // return { message: "Created successfully", newData };
   };
 
   getReviewsOrganizer = async (id: number) => {

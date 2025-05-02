@@ -11,10 +11,10 @@ export class PointService {
     this.prisma = PrismaClient;
   }
 
-  validatePoint = async (body: TransactionDTO) => {
+  validatePoint = async (body: TransactionDTO, authUserId: number) => {
     if (body.usePoints === true) {
       const point = await this.prisma.pointDetail.findFirst({
-        where: { userId: body.userId },
+        where: { userId: authUserId },
       });
 
       if (!point || point.amount === 0) {
