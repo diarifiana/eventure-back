@@ -26,11 +26,11 @@ export class TransactionRouter {
   }
 
   private initializeRoutes = () => {
-    this.router.post(
-      "/",
-      validateBody(TransactionDTO),
-      this.transactionController.createTransaction
-    );
+    // this.router.post(
+    //   "/",
+    //   validateBody(TransactionDTO),
+    //   this.transactionController.createTransaction
+    // );
 
     this.router.post(
       "/detail",

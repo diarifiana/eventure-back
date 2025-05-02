@@ -11,22 +11,22 @@ export class TransactionController {
     this.transactionService = TransactionService;
   }
 
-  createTransaction = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const userId = res.locals.user.id;
-      const result = await this.transactionService.createTransaction(
-        req.body,
-        userId
-      );
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+  // createTransaction = async (
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction
+  // ) => {
+  //   try {
+  //     const userId = res.locals.user.id;
+  //     const result = await this.transactionService.createTransaction(
+  //       req.body,
+  //       userId
+  //     );
+  //     res.status(200).send(result);
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
   createTxDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
