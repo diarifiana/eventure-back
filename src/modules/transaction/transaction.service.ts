@@ -30,61 +30,72 @@ export class TransactionService {
     this.mailService = MailService;
   }
 
-  createTransaction = async (body: TransactionDTO, authUserId: number) => {
-    const ticket = await this.prisma.ticket.findFirst({
-      where: { id: body.ticketId },
-    });
-
-    if (!ticket) {
-      throw new ApiError("Ticket invalid", 400);
-    }
-
-    if (body.qty > ticket.qty) {
-      throw new ApiError("Insufficient stock", 400);
-    }
-
-    const voucher = await this.prisma.voucher.findFirst({
-      where: {
-        code: body.voucherCode,
-      },
-    });
-
-    if (!voucher || voucher?.eventId !== ticket.eventId || voucher.qty <= 0) {
-      throw new ApiError("Cannot claim voucher", 400);
-    }
-
-    const couponAmount = this.couponService.validateCoupon(body);
-    const totalPoints = this.pointService.validatePoint(body, authUserId);
-
-    const totalToPay =
-      ticket.price * body.qty -
-      ((await couponAmount) + voucher.discountAmount + (await totalPoints));
-    if (totalToPay < 0) {
-      throw new ApiError("Discount cannot be claimed", 400);
-    }
-
-    const newData = await this.prisma.$transaction(async (tx) => {
-      if ((await couponAmount) > 0) {
-        await tx.referralCoupon.update({
-          where: { referralCoupon: body.referralCouponCode },
-          data: { isClaimed: true },
+  createTransaction = async (
+    body: TransactionDTO,
+    authUserId: number,
+    slug: string
+  ) => {
+    if(body.details.length > 0) {
+      body.details.map((data) => {
+        const ticket = await this.prisma.ticket.findFirst({
+          where: { id: data.ticketId },
         });
-      }
+    
+        if (!ticket) {
+          throw new ApiError("Ticket invalid", 400);
+        }
+    
+        if (data.qty > ticket.qty) {
+          throw new ApiError("Insufficient stock", 400);
+        }
+    
+        const voucher = await this.prisma.voucher.findFirst({
+          where: {
+            code: body.voucherCode,
+          },
+        });
+    
+        if (!voucher || voucher?. !== ticket.eventId || voucher.qty <= 0) {
+          throw new ApiError("Cannot claim voucher", 400);
+        }
+    
+        const couponAmount = this.couponService.validateCoupon(body);
+        const totalPoints = this.pointService.validatePoint(body, authUserId);
+    
+        const totalToPay =
+          ticket.price * body.qty -
+          ((await couponAmount) + voucher.discountAmount + (await totalPoints));
+        if (totalToPay < 0) {
+          throw new ApiError("Discount cannot be claimed", 400);
+        }
+    
+        const newData = await this.prisma.$transaction(async (tx) => {
+          if ((await couponAmount) > 0) {
+            await tx.referralCoupon.update({
+              where: { referralCoupon: body.referralCouponCode },
+              data: { isClaimed: true },
+            });
+          }
+    
+          await tx.voucher.update({
+            where: { code: body.voucherCode },
+            data: { qty: { decrement: body.qty } },
+          });
+    
+          await tx.pointDetail.update({
+            where: { userId: authUserId },
+            data: { amount: 0 },
+          });
+    
+          await tx.ticket.update({
+            where: { id: body.ticketId },
+            data: { qty: { decrement: body.qty } },
+          });
 
-      await tx.voucher.update({
-        where: { code: body.voucherCode },
-        data: { qty: { decrement: body.qty } },
-      });
 
-      await tx.pointDetail.update({
-        where: { userId: authUserId },
-        data: { amount: 0 },
-      });
-
-      await tx.ticket.update({
-        where: { id: body.ticketId },
-        data: { qty: { decrement: body.qty } },
-      });
+      })
+    }
+    
 
       // return await tx.transaction.create({
       //   data: { ...body, totalAmount: totalToPay, userId: authUserId },

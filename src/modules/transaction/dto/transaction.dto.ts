@@ -3,7 +3,7 @@ import { IsNotEmpty, IsObject, IsString } from "class-validator";
 
 export class TransactionDTO {
   @IsObject()
-  readonly details!: object[];
+  readonly details!: { ticketId: number; qty: number }[];
 
   @IsString()
   readonly referralCouponCode?: string;
