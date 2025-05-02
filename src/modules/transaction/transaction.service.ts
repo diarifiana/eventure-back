@@ -98,18 +98,6 @@ export class TransactionService {
     return { messsage: "Created successfully", newData };
   };
 
-  getTransactionsByUser = async (userId: number) => {
-    const transactions = await this.prisma.transaction.findMany({
-      where: { userId },
-    });
-
-    if (!transactions) {
-      throw new ApiError("No data", 400);
-    }
-
-    return transactions;
-  };
-
   getTransactionTickets = async (id: number) => {
     const tickets = await this.prisma.transaction.findMany({
       where: { id },

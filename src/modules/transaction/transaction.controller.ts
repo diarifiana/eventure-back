@@ -28,22 +28,6 @@ export class TransactionController {
     }
   };
 
-  getTransactionsByUser = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const userId = res.locals.user.id;
-      const result = await this.transactionService.getTransactionsByUser(
-        userId
-      );
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
-    }
-  };
-
   getTransactionTickets = async (
     req: Request,
     res: Response,
