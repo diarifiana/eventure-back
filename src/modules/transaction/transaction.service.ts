@@ -1,16 +1,12 @@
 import { injectable } from "tsyringe";
 import { ApiError } from "../../utils/api-error";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
+import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CouponService } from "./coupon.service";
+import { createTxDetailTO } from "./dto/createTxDetail.dto";
 import { TransactionDTO } from "./dto/transaction.dto";
 import { PointService } from "./point.service";
-import { join } from "path";
-import { transporter } from "../../lib/nodemailer";
-import fs from "fs/promises";
-import { CloudinaryService } from "../cloudinary/cloudinary.service";
-import { eventNames } from "process";
-import { MailService } from "../mail/mail.service";
-import Mail from "nodemailer/lib/mailer";
 
 @injectable()
 export class TransactionService {
@@ -58,7 +54,7 @@ export class TransactionService {
     }
 
     const couponAmount = this.couponService.validateCoupon(body);
-    const totalPoints = this.pointService.validatePoint(body);
+    const totalPoints = this.pointService.validatePoint(body, authUserId);
 
     const totalToPay =
       ticket.price * body.qty -
@@ -81,7 +77,7 @@ export class TransactionService {
       });
 
       await tx.pointDetail.update({
-        where: { userId: body.userId },
+        where: { userId: authUserId },
         data: { amount: 0 },
       });
 
@@ -90,17 +86,40 @@ export class TransactionService {
         data: { qty: { decrement: body.qty } },
       });
 
-      return await tx.transaction.create({
-        data: { ...body, totalAmount: totalToPay, userId: authUserId },
-      });
+      // return await tx.transaction.create({
+      //   data: { ...body, totalAmount: totalToPay, userId: authUserId },
+      // });
     });
 
     return { messsage: "Created successfully", newData };
   };
 
-  getTransactionTickets = async (id: number) => {
+  createTxDetail = async (detailTx: createTxDetailTO[]) => {
+    const data = await this.prisma.transactionDetail.createMany({
+      data: detailTx.map((detail) => ({
+        transactionId: detail.transactionId,
+        ticketId: detail.ticketId,
+        qty: detail.qty,
+      })),
+    });
+    return data;
+  };
+
+  getTransactionsByUser = async (userId: number) => {
+    const transactions = await this.prisma.transaction.findMany({
+      where: { userId },
+    });
+
+    if (!transactions) {
+      throw new ApiError("No data", 400);
+    }
+
+    return transactions;
+  };
+
+  getTransactionTickets = async (uuid: string) => {
     const tickets = await this.prisma.transaction.findMany({
-      where: { id },
+      where: { uuid },
       select: { ticket: { select: { event: true } } },
     });
 
@@ -129,7 +148,7 @@ export class TransactionService {
           },
         },
       },
-      _count: { id: true },
+      _count: { uuid: true },
     });
 
     return { transactions: transactions, totalTransaction: totalTransaction };
@@ -154,28 +173,9 @@ export class TransactionService {
     return revenue._sum;
   };
 
-  getTransactionTotalTickets = async (organizerId: number) => {
-    const total = await this.prisma.transaction.aggregate({
-      where: {
-        ticket: {
-          event: {
-            organizerId,
-          },
-        },
-      },
-      _sum: { qty: true },
-    });
-
-    if (!total) {
-      throw new ApiError("No data", 400);
-    }
-
-    return total._sum;
-  };
-
-  getTransactionPaymentProof = async (id: number) => {
+  getTransactionPaymentProof = async (uuid: string) => {
     const transaction = await this.prisma.transaction.findUnique({
-      where: { id },
+      where: { uuid },
     });
 
     if (!transaction) {
@@ -185,12 +185,9 @@ export class TransactionService {
     return transaction;
   };
 
-  updateTransaction = async (
-    transactionId: number,
-    action: "accept" | "reject"
-  ) => {
+  updateTransaction = async (uuid: string, action: "accept" | "reject") => {
     const transaction = await this.prisma.transaction.findUnique({
-      where: { id: transactionId },
+      where: { uuid },
       include: {
         user: true,
         ticket: {
@@ -233,12 +230,12 @@ export class TransactionService {
     if (action === "reject") {
       await this.prisma.$transaction(async (tx) => {
         // kembaliin voucher
-        if (transaction.voucherId) {
-          await tx.voucher.update({
-            where: { id: transaction.voucherId },
-            data: { qty: { increment: transaction.qty } },
-          });
-        }
+        // if (transaction.voucherId) {
+        //   await tx.voucher.update({
+        //     where: { id: transaction.voucherId },
+        //     // data: { qty: { increment: transaction.qty } },
+        //   });
+        // }
         // kembaliin point
         if (transaction.usePoints) {
           await tx.pointDetail.update({
@@ -247,10 +244,10 @@ export class TransactionService {
           });
         }
         // kembaliin total toket
-        await tx.ticket.update({
-          where: { id: transaction.ticketId },
-          data: { qty: { increment: transaction.qty } },
-        });
+        // await tx.ticket.update({
+        //   where: { id: transaction.ticketId },
+        //   // data: { qty: { increment: transaction.qty } },
+        // });
         // kembaliin referral kupon
         if (transaction.referralCouponId) {
           await tx.referralCoupon.update({
@@ -263,7 +260,7 @@ export class TransactionService {
 
     // baru deh update transaksi trus abistu kirim email
     const updatedTransaction = await this.prisma.transaction.update({
-      where: { id: transactionId },
+      where: { uuid },
       data: { status: updateStatus },
     });
 
@@ -273,9 +270,9 @@ export class TransactionService {
       templateFile,
       {
         name: transaction.user.fullName,
-        transactionId: transaction.id,
+        transactionId: uuid,
         transactionAmount: transaction.totalAmount,
-        eventName: transaction.ticket.event.name,
+        eventName: transaction.ticket?.event.name,
         transactionDate: transaction.createdAt,
       }
     );
@@ -288,10 +285,10 @@ export class TransactionService {
 
   uploadPaymentProof = async (
     paymentProof: Express.Multer.File,
-    id: number
+    uuid: string
   ) => {
     const transaction = await this.prisma.transaction.findFirst({
-      where: { id },
+      where: { uuid },
     });
 
     if (!transaction) {
@@ -302,7 +299,7 @@ export class TransactionService {
 
     await this.prisma.transaction.update({
       where: {
-        id,
+        uuid,
       },
       data: {
         paymentProof: secure_url,

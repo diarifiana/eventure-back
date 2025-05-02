@@ -135,50 +135,59 @@ model Voucher {
 }
 
 model Ticket {
-  id           Int           @id @default(autoincrement())
-  eventId      Int
-  event        Event         @relation(fields: [eventId], references: [id])
-  ticketType   String
-  price        Int
-  qty          Int
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  isDeleted    Boolean       @default(false)
-  transactions Transaction[]
+  id                Int                 @id @default(autoincrement())
+  eventId           Int
+  event             Event               @relation(fields: [eventId], references: [id])
+  ticketType        String
+  price             Int
+  qty               Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  isDeleted         Boolean             @default(false)
+  transactions      Transaction[]
+  transactionDetail TransactionDetail[]
 
   @@map("tickets")
 }
 
 model Transaction {
-  id                 Int             @id @default(autoincrement())
-  uuid               String          @unique @default(uuid())
+  uuid               String              @unique @default(uuid())
   userId             Int
-  user               User            @relation(fields: [userId], references: [id])
-  ticketId           Int
-  ticket             Ticket          @relation(fields: [ticketId], references: [id])
-  referralCouponCode String          @default("")
-  voucherCode        String          @default("")
-  qty                Int
+  user               User                @relation(fields: [userId], references: [id])
+  referralCouponCode String              @default("")
+  voucherCode        String              @default("")
   totalAmount        Int
-  status             Status          @default(WAITING_FOR_PAYMENT)
-  usePoints          Boolean         @default(false)
+  status             Status              @default(WAITING_FOR_PAYMENT)
+  usePoints          Boolean             @default(false)
   paymentProof       String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  isDeleted          Boolean         @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  isDeleted          Boolean             @default(false)
   review             Review[]
-  referralCoupon     ReferralCoupon? @relation(fields: [referralCouponId], references: [id])
+  referralCoupon     ReferralCoupon?     @relation(fields: [referralCouponId], references: [id])
   referralCouponId   Int?
-  voucher            Voucher?        @relation(fields: [voucherId], references: [id])
+  voucher            Voucher?            @relation(fields: [voucherId], references: [id])
   voucherId          Int?
+  ticket             Ticket?             @relation(fields: [ticketId], references: [id])
+  ticketId           Int?
+  transactionDetails TransactionDetail[]
 
   @@map("transactions")
 }
 
+model TransactionDetail {
+  id            Int         @id @default(autoincrement())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [uuid])
+  ticketId      Int
+  ticket        Ticket      @relation(fields: [ticketId], references: [id])
+  qty           Int
+}
+
 model Review {
   id            Int         @id @default(autoincrement())
-  transactionId Int
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [uuid])
   review        String
   rating        Rating
   createdAt     DateTime    @default(now())

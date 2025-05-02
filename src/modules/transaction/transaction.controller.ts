@@ -28,14 +28,39 @@ export class TransactionController {
     }
   };
 
+  createTxDetail = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.transactionService.createTxDetail(req.body);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionsByUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId = res.locals.user.id;
+      const result = await this.transactionService.getTransactionsByUser(
+        userId
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getTransactionTickets = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try {
-      const id = Number(req.params.id);
-      const result = await this.transactionService.getTransactionTickets(id);
+      const uuid = req.params.uuid;
+      const result = await this.transactionService.getTransactionTickets(uuid);
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -72,21 +97,21 @@ export class TransactionController {
     }
   };
 
-  getTransactionTotalTickets = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const id = Number(req.params.id);
-      const result = await this.transactionService.getTransactionTotalTickets(
-        id
-      );
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+  // getTransactionTotalTickets = async (
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction
+  // ) => {
+  //   try {
+  //     const uuid = req.params.uuid;
+  //     const result = await this.transactionService.getTransactionTotalTickets(
+  //       uuid
+  //     );
+  //     res.status(200).send(result);
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
   updateTransaction = async (
     req: Request,
@@ -95,7 +120,7 @@ export class TransactionController {
   ) => {
     try {
       const result = await this.transactionService.updateTransaction(
-        Number(req.params.id),
+        req.params.uuid,
         req.body.action
       );
       res.status(200).send(result);
@@ -119,7 +144,7 @@ export class TransactionController {
 
       const result = await this.transactionService.uploadPaymentProof(
         picture,
-        Number(req.params.id)
+        req.params.uuid
       );
       res.status(200).send(result);
     } catch (error) {

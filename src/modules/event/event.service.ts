@@ -5,16 +5,22 @@ import { injectable } from "tsyringe";
 import { EventDTO } from "./dto/event.dto";
 import { CategoryName, Location, Prisma } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-events.dto";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
 
 @injectable()
 export class EventService {
   private prisma: PrismaService;
+  private cloudinaryService: CloudinaryService;
 
-  constructor(PrismaClient: PrismaService) {
+  constructor(
+    PrismaClient: PrismaService,
+    CloudinaryService: CloudinaryService
+  ) {
     this.prisma = PrismaClient;
+    this.cloudinaryService = CloudinaryService;
   }
 
-  createEvent = async (body: EventDTO) => {
+  createEvent = async (body: EventDTO, picture: Express.Multer.File) => {
     const existing = await this.prisma.event.findFirst({
       where: { name: body.name },
     });
@@ -25,13 +31,18 @@ export class EventService {
 
     const slug = generateSlug(body.name);
 
+    // cloudinary
+    const { secure_url } = await this.cloudinaryService.upload(picture);
+    console.log(body);
+
     const eventNew = await this.prisma.event.create({
-      data: { ...body, slug },
+      data: { ...body, slug: slug, thumbnail: secure_url },
     });
 
     return { message: "Created successfully", eventNew };
   };
 
+  // DTO Data Transfer Object yang mendefinisikan struktur data yang diharapkan untuk parameter query
   getEvents = async (query: GetEventsDTO) => {
     const { page, take, sortBy, sortOrder, search } = query;
 
@@ -47,6 +58,7 @@ export class EventService {
       where: whereClause,
       include: { tickets: true, organizer: true },
       orderBy: { [sortBy]: sortOrder },
+      // sortBy created at, sortOrder desc?
       skip: (page - 1) * take,
       take,
     });
@@ -59,8 +71,9 @@ export class EventService {
   };
 
   getEvent = async (slug: string) => {
-    const data = await this.prisma.event.findFirst({
+    const data = await this.prisma.event.findUnique({
       where: { slug },
+      include: { tickets: true, category: true, organizer: true },
     });
 
     if (!data) {
@@ -81,16 +94,32 @@ export class EventService {
     return events;
   };
 
-  getEventsByCategory = async (category: CategoryName) => {
-    const data = await this.prisma.event.findMany({
-      where: {
-        category: {
-          name: category,
-        },
-      },
+  getEventsByCategory = async (slug: CategoryName, query: GetEventsDTO) => {
+    const { page, take, sortBy, sortOrder, search } = query;
+
+    const whereClause: Prisma.EventWhereInput = {
+      isDeleted: false,
+      category: { name: slug.toUpperCase() as CategoryName },
+    };
+
+    if (search) {
+      whereClause.name = { contains: search, mode: "insensitive" };
+    }
+
+    const events = await this.prisma.event.findMany({
+      where: whereClause,
+      include: { tickets: true, organizer: true },
+      orderBy: { [sortBy]: sortOrder },
+      // sortBy created at, sortOrder desc?
+      skip: (page - 1) * take,
+      take,
     });
 
-    return data;
+    const count = await this.prisma.event.count({ where: whereClause });
+    return {
+      data: events,
+      meta: { page, take, total: count },
+    };
   };
 
   getEventsByLocation = async (location: Location, query: GetEventsDTO) => {
@@ -163,7 +192,7 @@ export class EventService {
       if (existingEvent && existingEvent.id !== id) {
         throw new ApiError("Product name already exists", 400);
       }
-      body.slug = generateSlug(body.name);
+      const slug = generateSlug(body.name);
     }
 
     await this.prisma.event.update({
