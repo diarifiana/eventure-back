@@ -17,20 +17,12 @@ export class TransactionController {
     next: NextFunction
   ) => {
     try {
-      const userId = res.locals.user.id;
+      const authUserId = res.locals.user.id;
       const result = await this.transactionService.createTransaction(
+        authUserId,
         req.body,
-        userId
+        req.params.slug
       );
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  createTxDetail = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await this.transactionService.createTxDetail(req.body);
       res.status(200).send(result);
     } catch (error) {
       next(error);
