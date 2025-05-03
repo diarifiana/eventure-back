@@ -86,7 +86,7 @@ model PointDetail {
 
 model Event {
   id          Int          @id @default(autoincrement())
-  category    CategoryName @default(MUSIC)
+  category    CategoryName
   organizerId Int
   organizer   Organizer    @relation("OrganizerToEvent", fields: [organizerId], references: [id])
   slug        String       @unique
@@ -105,21 +105,10 @@ model Event {
   @@map("events")
 }
 
-// model Category {
-//   id        Int          @id @default(autoincrement())
-//   name      CategoryName
-//   createdAt DateTime     @default(now())
-//   updatedAt DateTime     @updatedAt
-//   isDeleted Boolean      @default(false)
-//   events    Event[]
-
-//   @@map("categories")
-// }
-
 model Voucher {
   id             Int           @id @default(autoincrement())
-  eventId        Int
-  event          Event         @relation(fields: [eventId], references: [id])
+  eventSlug      String
+  event          Event         @relation(fields: [eventSlug], references: [slug])
   code           String        @unique
   discountAmount Int
   startDate      DateTime
@@ -153,23 +142,22 @@ model Transaction {
   uuid               String              @unique @default(uuid())
   userId             Int
   user               User                @relation(fields: [userId], references: [id])
-  referralCouponCode String              @default("")
-  voucherCode        String              @default("")
+  referralCouponUsed String?
+  referralCoupon     ReferralCoupon?     @relation(fields: [referralCouponUsed], references: [referralCoupon])
+  voucherUsed        String?
+  voucher            Voucher?            @relation(fields: [voucherUsed], references: [code])
   totalAmount        Int
   status             Status              @default(WAITING_FOR_PAYMENT)
   usePoints          Boolean             @default(false)
+  pointsUsed         Int                 @default(0)
   paymentProof       String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   isDeleted          Boolean             @default(false)
   review             Review[]
-  referralCoupon     ReferralCoupon?     @relation(fields: [referralCouponId], references: [id])
-  referralCouponId   Int?
-  voucher            Voucher?            @relation(fields: [voucherId], references: [id])
-  voucherId          Int?
+  transactionDetails TransactionDetail[]
   ticket             Ticket?             @relation(fields: [ticketId], references: [id])
   ticketId           Int?
-  transactionDetails TransactionDetail[]
 
   @@map("transactions")
 }

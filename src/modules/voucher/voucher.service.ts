@@ -35,17 +35,17 @@ export class VoucherService {
       throw new ApiError("Data invalid", 400);
     }
 
-    const newVoucher = await this.prisma.voucher.create({
-      data: {
-        eventId: Number(eventId),
-        code,
-        discountAmount: Number(discountAmount),
-        qty: Number(qty),
-        startDate,
-        endDate,
-      },
-    });
-    return newVoucher;
+    // const newVoucher = await this.prisma.voucher.create({
+    //   data: {
+    //     eventId: Number(eventId),
+    //     code,
+    //     discountAmount: Number(discountAmount),
+    //     qty: Number(qty),
+    //     startDate,
+    //     endDate,
+    //   },
+    // });
+    // return newVoucher;
   };
 
   deleteVoucher = async (id: number) => {

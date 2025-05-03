@@ -11,26 +11,18 @@ export class TransactionController {
     this.transactionService = TransactionService;
   }
 
-  // createTransaction = async (
-  //   req: Request,
-  //   res: Response,
-  //   next: NextFunction
-  // ) => {
-  //   try {
-  //     const userId = res.locals.user.id;
-  //     const result = await this.transactionService.createTransaction(
-  //       req.body,
-  //       userId
-  //     );
-  //     res.status(200).send(result);
-  //   } catch (error) {
-  //     next(error);
-  //   }
-  // };
-
-  createTxDetail = async (req: Request, res: Response, next: NextFunction) => {
+  createTransaction = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const result = await this.transactionService.createTxDetail(req.body);
+      const authUserId = res.locals.user.id;
+      const result = await this.transactionService.createTransaction(
+        authUserId,
+        req.body,
+        req.params.slug
+      );
       res.status(200).send(result);
     } catch (error) {
       next(error);

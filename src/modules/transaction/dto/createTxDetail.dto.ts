@@ -1,16 +1,15 @@
-import { Transform } from "class-transformer";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsObject, IsString } from "class-validator";
 
-export class createTxDetailTO {
-  @IsNotEmpty()
+export class TransactionDTO {
+  @IsObject()
+  readonly details!: { ticketId: number; qty: number }[];
+
   @IsString()
-  readonly transactionId!: string;
+  readonly referralCouponCode?: string;
 
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  ticketId!: number;
+  @IsString()
+  readonly voucherCode?: string;
 
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  qty!: number;
+  @IsString()
+  readonly usePoints?: boolean;
 }

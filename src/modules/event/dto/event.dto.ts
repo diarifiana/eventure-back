@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
-import { Location } from "../../../generated/prisma";
+import { CategoryName, Location } from "../../../generated/prisma";
 import { Transform } from "class-transformer";
 
 export class EventDTO {
@@ -14,6 +14,10 @@ export class EventDTO {
   @IsNotEmpty()
   @IsString()
   readonly name!: string;
+
+  @IsNotEmpty()
+  @IsEnum(CategoryName)
+  readonly category!: CategoryName;
 
   @IsNotEmpty()
   @IsString()
