@@ -73,7 +73,7 @@ export class EventService {
   getEvent = async (slug: string) => {
     const data = await this.prisma.event.findUnique({
       where: { slug },
-      include: { tickets: true, category: true, organizer: true },
+      include: { tickets: true, organizer: true },
     });
 
     if (!data) {
@@ -99,7 +99,7 @@ export class EventService {
 
     const whereClause: Prisma.EventWhereInput = {
       isDeleted: false,
-      category: { name: slug.toUpperCase() as CategoryName },
+      category: slug,
     };
 
     if (search) {

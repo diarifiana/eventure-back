@@ -5,22 +5,27 @@ import { uploader } from "../../lib/multer";
 import { verifyRole } from "../../middlewares/role.middleware";
 import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { validateBody } from "../../middlewares/validation.middleware";
-import { createTxDetailTO } from "./dto/createTxDetail.dto";
 import { TransactionDTO } from "./dto/transaction.dto";
 import { TransactionController } from "./transaction.controller";
+import { JwtMiddleware } from "../../middlewares/jwt.middleware";
+import { JWT_SECRET_KEY } from "../../config";
 
 @injectable()
 export class TransactionRouter {
   private router: Router;
   private transactionController: TransactionController;
+  private jwtMiddleware: JwtMiddleware;
+
   private uploaderMiddleware: UploaderMiddleware;
 
   constructor(
     TransactionController: TransactionController,
+    JwtMiddleware: JwtMiddleware,
     UploaderMiddleware: UploaderMiddleware
   ) {
     this.router = Router();
     this.transactionController = TransactionController;
+    this.jwtMiddleware = JwtMiddleware;
     this.uploaderMiddleware = UploaderMiddleware;
     this.initializeRoutes();
   }
@@ -28,14 +33,10 @@ export class TransactionRouter {
   private initializeRoutes = () => {
     this.router.post(
       "/",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["USER"]),
       validateBody(TransactionDTO),
       this.transactionController.createTransaction
-    );
-
-    this.router.post(
-      "/detail",
-      validateBody(createTxDetailTO),
-      this.transactionController.createTxDetail
     );
 
     this.router.get(

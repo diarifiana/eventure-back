@@ -8,6 +8,7 @@
     "copy-files": "cpx src/modules/mail/templates/**/* dist/modules/mail/templates",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon src/index.ts",
+    "start:worker": "ts-node src/modules/transaction/jobs/user-transaction.worker.ts",
     "test:integration": "cross-env TEST_TYPE=integration jest --runInBand",
     "test:unit": "jest --forceExit --detectOpenHandles"
   },
@@ -17,6 +18,7 @@
   "dependencies": {
     "@prisma/client": "^6.6.0",
     "argon2": "^0.41.1",
+    "bullmq": "^5.52.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cloudinary": "^2.6.0",
@@ -27,6 +29,7 @@
     "express": "^5.1.0",
     "file-type": "^16.5.4",
     "handlebars": "^4.7.8",
+    "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
     "nanoid": "^5.1.5",
