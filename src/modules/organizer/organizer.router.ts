@@ -40,6 +40,13 @@ export class OrganizerRouter {
     );
 
     this.router.get(
+      "/events/:slug",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getEventOrganizerBySlug
+    );
+
+    this.router.get(
       "/:id",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       this.organizerController.getOrganizerByUserId

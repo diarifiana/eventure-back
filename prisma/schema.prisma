@@ -85,37 +85,36 @@ model PointDetail {
 }
 
 model Event {
-  id          Int       @id @default(autoincrement())
-  categoryId  Int
-  category    Category  @relation(fields: [categoryId], references: [id])
+  id          Int          @id @default(autoincrement())
+  category    CategoryName @default(MUSIC)
   organizerId Int
-  organizer   Organizer @relation("OrganizerToEvent", fields: [organizerId], references: [id])
-  slug        String    @unique
+  organizer   Organizer    @relation("OrganizerToEvent", fields: [organizerId], references: [id])
+  slug        String       @unique
   name        String
   desc        String
   startDate   DateTime
   endDate     DateTime
   location    Location
   thumbnail   String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  isDeleted   Boolean   @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isDeleted   Boolean      @default(false)
   vouchers    Voucher[]
   tickets     Ticket[]
 
   @@map("events")
 }
 
-model Category {
-  id        Int          @id @default(autoincrement())
-  name      CategoryName
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  isDeleted Boolean      @default(false)
-  events    Event[]
+// model Category {
+//   id        Int          @id @default(autoincrement())
+//   name      CategoryName
+//   createdAt DateTime     @default(now())
+//   updatedAt DateTime     @updatedAt
+//   isDeleted Boolean      @default(false)
+//   events    Event[]
 
-  @@map("categories")
-}
+//   @@map("categories")
+// }
 
 model Voucher {
   id             Int           @id @default(autoincrement())

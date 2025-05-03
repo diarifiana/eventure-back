@@ -7,6 +7,7 @@ import { CategoryName, Location, Prisma } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-events.dto";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
 import { UpdateEventDTO } from "./dto/update-event.dto";
+import { JwtMiddleware } from "../../middlewares/jwt.middleware";
 
 @injectable()
 export class EventService {
@@ -17,6 +18,8 @@ export class EventService {
     PrismaClient: PrismaService,
     CloudinaryService: CloudinaryService
   ) {
+    console.log("Constructing EventService");
+
     this.prisma = PrismaClient;
     this.cloudinaryService = CloudinaryService;
   }
@@ -74,7 +77,7 @@ export class EventService {
   getEvent = async (slug: string) => {
     const data = await this.prisma.event.findUnique({
       where: { slug },
-      include: { tickets: true, category: true, organizer: true },
+      include: { tickets: true, organizer: true },
     });
 
     if (!data) {
@@ -100,7 +103,8 @@ export class EventService {
 
     const whereClause: Prisma.EventWhereInput = {
       isDeleted: false,
-      category: { name: slug.toUpperCase() as CategoryName },
+      category: slug,
+      // category: { name: slug.toUpperCase() as CategoryName },
     };
 
     if (search) {
@@ -178,17 +182,26 @@ export class EventService {
     return attendee?.tickets[0].transactions;
   };
 
-  updateEvent = async (id: number, body: Partial<UpdateEventDTO>) => {
+  updateEvent = async (
+    id: number,
+    authUserId: number,
+    body: Partial<UpdateEventDTO>
+  ) => {
     const existingEvent = await this.prisma.event.findFirst({
       where: { id },
-      include: { category: true },
+      include: { organizer: { include: { user: true } } },
     });
 
     if (!existingEvent) {
       throw new ApiError("Event not found", 404);
     }
 
-    // Cek dan validasi nama baru
+    if (existingEvent.organizer.user.id !== authUserId) {
+      throw new ApiError("You are not authorized", 401);
+    }
+
+    let newSlug = existingEvent.slug;
+
     if (body.name && body.name !== existingEvent.name) {
       const duplicate = await this.prisma.event.findFirst({
         where: { name: body.name },
@@ -197,28 +210,53 @@ export class EventService {
       if (duplicate && duplicate.id !== id) {
         throw new ApiError("Event name already exists", 400);
       }
+
+      newSlug = generateSlug(body.name);
     }
 
-    // Generate slug jika nama berubah
-    const updatedData: any = {
-      name: body.name ?? existingEvent.name,
-      desc: body.desc ?? existingEvent.desc,
-      startDate: body.startDate ?? existingEvent.startDate,
-      endDate: body.endDate ?? existingEvent.endDate,
-      category: body.category ?? existingEvent.category.name,
-      location: body.location ?? existingEvent.location,
-    };
-
-    if (body.name && body.name !== existingEvent.name) {
-      updatedData.slug = generateSlug(body.name);
-    }
-
-    await this.prisma.event.update({
+    return await this.prisma.event.update({
       where: { id },
-      data: updatedData,
+      data: {
+        ...body,
+        slug: newSlug,
+      },
+    });
+  };
+
+  uploadEventThumbnail = async (
+    authUserId: number,
+    id: number,
+    thumbnail: Express.Multer.File
+  ) => {
+    const existingEvent = await this.prisma.event.findFirst({
+      where: { id },
+      include: { organizer: { include: { user: true } } },
     });
 
-    return { message: "Updated successfully" };
+    if (!existingEvent) {
+      throw new ApiError("Event not found", 404);
+    }
+
+    if (existingEvent.organizer.user.id !== authUserId) {
+      throw new ApiError("You are not authorized", 401);
+    }
+    // cek dlu sudah ada thumbnail di cloudinary atau belum
+    if (existingEvent.thumbnail) {
+      await this.cloudinaryService.remove(existingEvent.thumbnail);
+    }
+    // kalo udha dihapus
+    // kalo belom diupload
+    const { secure_url } = await this.cloudinaryService.upload(thumbnail);
+    await this.prisma.event.update({
+      where: { id },
+      data: {
+        thumbnail: secure_url,
+      },
+    });
+    return {
+      data: secure_url,
+      message: `success upload thumbnail ${secure_url}`,
+    };
   };
 
   deleteEvent = async (id: number) => {

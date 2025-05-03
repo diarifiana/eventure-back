@@ -19,8 +19,9 @@ export class UpdateEventDTO {
   readonly endDate!: string;
 
   @IsOptional()
-  @IsEnum(Location)
+  @IsEnum(CategoryName)
   readonly category!: CategoryName;
+
   @IsOptional()
   @IsEnum(Location)
   readonly location!: Location;

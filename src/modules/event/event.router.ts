@@ -9,18 +9,20 @@ import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { uploader } from "../../lib/multer";
 import { JWT_SECRET_KEY } from "../../config";
 import { JwtMiddleware } from "../../middlewares/jwt.middleware";
+import { UpdateEventDTO } from "./dto/update-event.dto";
 
 @injectable()
 export class EventRouter {
   private router: Router;
   private eventController: EventController;
-  private uploaderMiddleware: UploaderMiddleware;
   private jwtMiddleware: JwtMiddleware;
+  private uploaderMiddleware: UploaderMiddleware;
   constructor(
     EventController: EventController,
-    UploaderMiddleware: UploaderMiddleware,
-    JwtMiddleware: JwtMiddleware
+    JwtMiddleware: JwtMiddleware,
+    UploaderMiddleware: UploaderMiddleware
   ) {
+    console.log("Constructing EventRouter");
     this.router = Router();
     this.eventController = EventController;
     this.jwtMiddleware = JwtMiddleware;
@@ -40,12 +42,35 @@ export class EventRouter {
         "image/png",
         "image/webp",
       ]),
-
       validateBody(EventDTO),
       this.eventController.createEvent
     );
 
     this.router.get("/", this.eventController.getEvents);
+
+    // update event
+    this.router.patch(
+      "/:id",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      validateBody(UpdateEventDTO),
+      this.eventController.updateEvent
+    );
+
+    // upload event thumbnail
+    this.router.post(
+      "/:id",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      uploader(1).fields([{ name: "thumbnail", maxCount: 1 }]),
+      this.uploaderMiddleware.fileFilter([
+        "image/jpeg",
+        "image/avif",
+        "image/png",
+        "image/webp",
+      ]),
+      this.eventController.uploadEventThumbnail
+    );
 
     this.router.get("/:slug", this.eventController.getEvent);
 
@@ -72,14 +97,6 @@ export class EventRouter {
     this.router.get(
       "/location/:slug",
       this.eventController.getEventsByLocation
-    );
-
-    this.router.patch(
-      "/:id",
-      verifyToken,
-      verifyRole(["ADMIN"]),
-      validateBody(EventDTO),
-      this.eventController.updateEvent
     );
 
     this.router.delete(
