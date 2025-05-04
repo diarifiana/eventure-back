@@ -73,7 +73,7 @@ export class AuthService {
           referralNumber: code,
           role: organizerName ? "ADMIN" : "USER",
           profilePic:
-            "https://res.cloudinary.com/dsxiuvsls/image/upload/v1745763207/banner_gacor_lek_1791_x_398_mm_u0iq4a.webp",
+            "https://res.cloudinary.com/dsxiuvsls/image/upload/v1746272439/usericon_tu7bka.webp",
         },
       });
 
@@ -83,7 +83,7 @@ export class AuthService {
             userId: createdUser.id,
             name: organizerName,
             profilePic:
-              "https://res.cloudinary.com/dsxiuvsls/image/upload/v1745763207/banner_gacor_lek_1791_x_398_mm_u0iq4a.webp",
+              "https://res.cloudinary.com/dsxiuvsls/image/upload/v1746272439/groupicon_yiesgy.webp",
           },
         });
       }

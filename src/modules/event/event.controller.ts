@@ -1,24 +1,21 @@
+import { plainToInstance } from "class-transformer";
 import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
-import { EventService } from "./event.service";
-import { plainToInstance } from "class-transformer";
-import { GetEventsDTO } from "./dto/get-events.dto";
 import { CategoryName, Location } from "../../generated/prisma";
 import { ApiError } from "../../utils/api-error";
-import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { EventDTO } from "./dto/event.dto";
+import { GetEventsDTO } from "./dto/get-events.dto";
+import { UpdateEventDTO } from "./dto/update-event.dto";
+import { EventService } from "./event.service";
 
 @injectable()
 export class EventController {
   private eventService: EventService;
-  private uploaderMiddleware: UploaderMiddleware;
 
-  constructor(
-    EventService: EventService,
-    UploaderMiddleware: UploaderMiddleware
-  ) {
+  constructor(EventService: EventService) {
+    console.log("Constructing EventController");
+    // console.log("EventController constructor called", EventService);
     this.eventService = EventService;
-    this.uploaderMiddleware = UploaderMiddleware;
   }
 
   createEvent = async (req: Request, res: Response, next: NextFunction) => {
@@ -122,7 +119,28 @@ export class EventController {
     try {
       const result = await this.eventService.updateEvent(
         Number(req.params.id),
-        req.body
+        res.locals.user.id,
+        plainToInstance(UpdateEventDTO, req.body)
+      );
+      // console.log("ini body", req.body);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadEventThumbnail = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const picture = files.thumbnail?.[0];
+      const result = await this.eventService.uploadEventThumbnail(
+        res.locals.user.id,
+        Number(req.params.id),
+        picture
       );
       res.status(200).send(result);
     } catch (error) {
