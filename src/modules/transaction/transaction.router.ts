@@ -15,7 +15,6 @@ export class TransactionRouter {
   private router: Router;
   private transactionController: TransactionController;
   private jwtMiddleware: JwtMiddleware;
-
   private uploaderMiddleware: UploaderMiddleware;
 
   constructor(
@@ -72,17 +71,17 @@ export class TransactionRouter {
     //   this.transactionController.getTransactionTotalTickets
     // );
 
-    this.router.post(
-      "/upload/:id",
+    this.router.patch(
+      "/detail/:uuid",
       verifyToken,
       verifyRole(["USER"]),
+      uploader(1).fields([{ name: "paymentProof", maxCount: 1 }]),
       this.uploaderMiddleware.fileFilter([
         "image/jpeg",
         "image/avif",
         "image/png",
         "image/webp",
       ]),
-      uploader(1).fields([{ name: "paymentProof", maxCount: 1 }]),
       this.transactionController.uploadPaymentProof
     );
 

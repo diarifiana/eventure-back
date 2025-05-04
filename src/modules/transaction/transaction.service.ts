@@ -95,6 +95,15 @@ export class TransactionService {
           data: { qty: { decrement: detail.qty } },
         });
 
+        await tx.event.update({
+          where: { id: ticket.eventId },
+          data: {
+            ticketSold: {
+              increment: detail.qty,
+            },
+          },
+        });
+
         const subtotal = (ticket.price - voucherDiscount) * detail.qty;
 
         if (subtotal < 0) {
