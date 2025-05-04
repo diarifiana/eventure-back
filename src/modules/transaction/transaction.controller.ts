@@ -29,6 +29,20 @@ export class TransactionController {
     }
   };
 
+  getTransaction = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const uuid = req.params.uuid;
+      const authUserId = res.locals.userId;
+      const result = await this.transactionService.getTransaction(
+        authUserId,
+        uuid
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getTransactionsByUser = async (
     req: Request,
     res: Response,

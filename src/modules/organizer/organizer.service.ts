@@ -280,7 +280,14 @@ export class OrganizerService {
 
     const baseWhere = eventSlug
       ? { ticket: { eventId: event?.id } }
-      : { ticket: { event: { organizerId } } };
+      : {
+          ticket: {
+            event: {
+              organizerId,
+              isDeleted: false,
+            },
+          },
+        };
 
     const doneWhere = {
       ...baseWhere,
