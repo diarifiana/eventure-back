@@ -40,6 +40,12 @@ export class TransactionRouter {
     );
 
     this.router.get(
+      "/detail/:uuid",
+      verifyToken,
+      this.transactionController.getTransaction
+    );
+
+    this.router.get(
       "/tickets/:id",
       verifyToken,
       this.transactionController.getTransactionTickets

@@ -5,8 +5,8 @@ import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CouponService } from "./coupon.service";
 import { TransactionDTO } from "./dto/transaction.dto";
-import { PointService } from "./point.service";
 import { TransactionQueue } from "./jobs/transaction.queue";
+import { PointService } from "./point.service";
 
 @injectable()
 export class TransactionService {
@@ -38,19 +38,44 @@ export class TransactionService {
     body: TransactionDTO,
     slug: string
   ) => {
-    const userPoint = await this.prisma.pointDetail.findFirst({
-      where: { id: authUserId },
-    });
-
     if (!body.details || body.details.length === 0) {
       throw new ApiError("Details cannot be empty", 400);
     }
 
+    let availablePoints = 0;
+    if (body.usePoints) {
+      availablePoints = await this.pointService.getAvailablePoints(
+        body,
+        authUserId
+      );
+    }
+
+    let voucherDiscount = 0;
+    if (body.voucherCode) {
+      const voucher = await this.prisma.voucher.findFirst({
+        where: {
+          code: body.voucherCode,
+          eventSlug: slug,
+          endDate: {
+            gt: new Date(),
+          },
+        },
+      });
+
+      if (!voucher) {
+        throw new ApiError("Invalid voucher", 400);
+      }
+
+      voucherDiscount = voucher.discountAmount;
+    }
+
+    let couponDiscount = 0;
+    if (body.referralCouponCode) {
+      couponDiscount = await this.couponService.validateCoupon(body);
+    }
+
     const newData = await this.prisma.$transaction(async (tx) => {
       let totalToPay = 0;
-      let voucherDiscount = 0;
-      let couponDiscount = 0;
-      let pointDiscount = 0;
 
       for (const detail of body.details) {
         const ticket = await tx.ticket.findFirst({
@@ -62,60 +87,7 @@ export class TransactionService {
         }
 
         if (detail.qty > ticket.qty) {
-          throw new ApiError("Insufficient ticket stock", 400);
-        }
-
-        if (body.voucherCode) {
-          const isVoucherUsed = await this.prisma.transaction.findFirst({
-            where: {
-              userId: authUserId,
-              voucherUsed: body.voucherCode,
-            },
-          });
-
-          if (!isVoucherUsed) {
-            const voucher = await tx.voucher.findFirst({
-              where: {
-                code: body.voucherCode,
-                eventSlug: slug,
-              },
-            });
-
-            if (!voucher || voucher.qty <= 0) {
-              throw new ApiError("Invalid voucher", 400);
-            }
-
-            voucherDiscount = voucher.discountAmount;
-
-            await tx.voucher.update({
-              where: { code: body.voucherCode },
-              data: { qty: { decrement: 1 } },
-            });
-          }
-        }
-
-        if (body.referralCouponCode) {
-          couponDiscount = await this.couponService.validateCoupon(body);
-          if (couponDiscount > 0) {
-            await tx.referralCoupon.update({
-              where: {
-                referralCoupon: body.referralCouponCode,
-              },
-              data: { isClaimed: true },
-            });
-          }
-        }
-
-        let pointDiscount = 0;
-        if (body.usePoints) {
-          pointDiscount = await this.pointService.validatePoint(
-            body,
-            authUserId
-          );
-          await tx.pointDetail.update({
-            where: { userId: authUserId },
-            data: { amount: 0 },
-          });
+          throw new ApiError("Insufficient ticket stock", 422);
         }
 
         await tx.ticket.update({
@@ -123,15 +95,33 @@ export class TransactionService {
           data: { qty: { decrement: detail.qty } },
         });
 
-        const subtotal =
-          ticket.price * detail.qty -
-          (voucherDiscount + couponDiscount + pointDiscount);
+        const subtotal = (ticket.price - voucherDiscount) * detail.qty;
 
         if (subtotal < 0) {
           throw new ApiError("Total after discount cannot be negative", 400);
         }
-
         totalToPay += subtotal;
+      }
+      totalToPay -= couponDiscount;
+      totalToPay = totalToPay < 0 ? 0 : totalToPay;
+
+      const usedPoints =
+        totalToPay < availablePoints ? totalToPay : availablePoints;
+      totalToPay -= usedPoints;
+      availablePoints -= usedPoints;
+
+      await tx.pointDetail.update({
+        where: { userId: authUserId },
+        data: { amount: availablePoints },
+      });
+
+      if (couponDiscount > 0) {
+        await tx.referralCoupon.update({
+          where: {
+            referralCoupon: body.referralCouponCode,
+          },
+          data: { isClaimed: true },
+        });
       }
 
       const newTransaction = await tx.transaction.create({
@@ -141,7 +131,7 @@ export class TransactionService {
           referralCouponUsed: body.referralCouponCode || undefined,
           voucherUsed: body.voucherCode || undefined,
           usePoints: !!body.usePoints,
-          pointsUsed: userPoint?.amount,
+          pointsUsed: usedPoints,
         },
       });
 
@@ -165,7 +155,6 @@ export class TransactionService {
           backoff: { type: "exponential", delay: 1000 },
         }
       );
-      console.log("added to expire-transaction");
 
       await this.transactionQueue.userTransactionQueue.add(
         "organization-response",
@@ -179,14 +168,36 @@ export class TransactionService {
           backoff: { type: "exponential", delay: 1000 },
         }
       );
-      console.log("added to organization-response");
       return newTransaction;
     });
 
     return {
       message: "Transaction successful",
-      data: { ...newData, uuid: newData.uuid },
+      data: { ...newData },
     };
+  };
+
+  getTransaction = async (authUserId: number, uuid: string) => {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { uuid },
+      include: {
+        transactionDetails: {
+          include: { ticket: { include: { event: true } } },
+        },
+        referralCoupon: true,
+        voucher: true,
+      },
+    });
+
+    if (!transaction) {
+      throw new ApiError(`No records for ${uuid}`, 400);
+    }
+
+    // if (transaction.userId !== authUserId) {
+    //   throw new ApiError("Unauthorized", 401);
+    // }
+
+    return transaction;
   };
 
   getTransactionsByUser = async (userId: number) => {
