@@ -332,4 +332,38 @@ export class OrganizerService {
       totalTicket: totalTicketQty._sum.qty || 0,
     };
   };
+
+  getEventOrganizerBySlug = async (authUserId: number, slug: string) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: {
+        organizer: true,
+      },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    if (!user.organizer) {
+      throw new ApiError("You are not registered as an organizer", 403);
+    }
+
+    const organizerId = user.organizer.id;
+    const event = await this.prisma.event.findFirst({
+      where: {
+        slug,
+        organizerId,
+      },
+      include: {
+        organizer: true,
+        tickets: { include: { transactions: true } },
+      },
+    });
+
+    if (!event) {
+      throw new ApiError("Event not found or does not belong to you", 404);
+    }
+    return event;
+  };
 }
