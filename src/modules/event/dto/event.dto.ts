@@ -5,10 +5,6 @@ import { Transform } from "class-transformer";
 export class EventDTO {
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
-  categoryId!: number;
-
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
   readonly organizerId!: number;
 
   @IsNotEmpty()
