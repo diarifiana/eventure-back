@@ -71,7 +71,9 @@ export class VoucherService {
         where: { code: body.voucherCode },
       });
 
-      if (!voucher || voucher.qty <= 0) {
+      const now = new Date();
+
+      if (!voucher || voucher.endDate <= now) {
         throw new ApiError("Voucher invalid", 400);
       } else {
         return voucher.discountAmount;

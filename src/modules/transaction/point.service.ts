@@ -11,7 +11,7 @@ export class PointService {
     this.prisma = PrismaClient;
   }
 
-  validatePoint = async (body: TransactionDTO, authUserId: number) => {
+  getAvailablePoints = async (body: TransactionDTO, authUserId: number) => {
     if (body.usePoints === true) {
       const point = await this.prisma.pointDetail.findFirst({
         where: { userId: authUserId },
