@@ -156,12 +156,180 @@ export class OrganizerService {
     };
   };
 
-  getTranscationByOrganizer = async (
-    authUserId: number,
-    organizerId: number
-  ) => {
-    const organizer = await this.prisma.organizer.findUnique({
-      where: { id: organizerId },
+  getTranscationByOrganizer = async (authUserId: number) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: {
+        organizer: true,
+      },
     });
+
+    if (!user?.organizer) {
+      throw new ApiError("You don't have an organizer", 404);
+    }
+
+    const organizerId = user.organizer.id;
+
+    const [transactions, totalTransaction, totalTicketQty] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: {
+          ticket: {
+            event: {
+              organizerId,
+            },
+          },
+          isDeleted: false,
+        },
+        include: {
+          ticket: {
+            include: {
+              event: true,
+            },
+          },
+          user: true,
+        },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          ticket: {
+            event: {
+              organizerId,
+            },
+          },
+          isDeleted: false,
+        },
+        _count: { uuid: true },
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.transactionDetail.aggregate({
+        where: {
+          transaction: {
+            ticket: {
+              event: {
+                organizerId,
+              },
+            },
+            isDeleted: false,
+          },
+        },
+        _sum: { qty: true },
+      }),
+    ]);
+
+    return {
+      transactions,
+      totalCount: totalTransaction._count.uuid,
+      totalRevenue: totalTransaction._sum.totalAmount,
+      totalTicket: totalTicketQty._sum.qty, // ✅ total tiket yang dibeli
+    };
+  };
+
+  getEventOrganizerBySlug = async (authUserId: number, slug: string) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: {
+        organizer: true,
+      },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    if (!user.organizer) {
+      throw new ApiError("You are not registered as an organizer", 403);
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: { slug },
+      include: {
+        organizer: true,
+      },
+    });
+
+    if (!event) {
+      throw new ApiError("Event not found", 404);
+    }
+
+    return event;
+  };
+
+  getEventTransactionByOrganizer = async (authUserId: number, slug: string) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: {
+        organizer: true,
+      },
+    });
+
+    if (!user?.organizer) {
+      throw new ApiError("You don't have an organizer", 404);
+    }
+  };
+
+  getTransactionPerEventSummary = async (
+    authUserId: number,
+    eventSlug?: string
+  ) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: { organizer: true },
+    });
+
+    if (!user?.organizer)
+      throw new ApiError("You don't have an organizer", 404);
+
+    const organizerId = user.organizer.id;
+
+    const eventFilter = eventSlug
+      ? { slug: eventSlug, organizerId }
+      : { organizerId };
+
+    const event = eventSlug
+      ? await this.prisma.event.findFirst({
+          where: { ...eventFilter, isDeleted: false },
+        })
+      : null;
+
+    const baseWhere = eventSlug
+      ? { ticket: { eventId: event?.id } }
+      : { ticket: { event: { organizerId } } };
+
+    const [transactions, totalTransaction, totalTicketQty] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: {
+          ...baseWhere,
+          isDeleted: false,
+        },
+        include: {
+          ticket: { include: { event: true } },
+          user: true,
+        },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          ...baseWhere,
+          isDeleted: false,
+        },
+        _count: { uuid: true },
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.transactionDetail.aggregate({
+        where: {
+          transaction: {
+            ...baseWhere,
+            isDeleted: false,
+          },
+        },
+        _sum: { qty: true },
+      }),
+    ]);
+
+    return {
+      transactions,
+      totalCount: totalTransaction._count.uuid,
+      totalRevenue: totalTransaction._sum.totalAmount || 0,
+      totalTicket: totalTicketQty._sum.qty || 0,
+    };
   };
 }

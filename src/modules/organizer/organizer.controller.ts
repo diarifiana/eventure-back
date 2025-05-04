@@ -75,7 +75,57 @@ export class OrganizerController {
       const result = await this.organizerService.getEventByOrganizer(
         res.locals.user.id
       );
-      console.log("AUTH USER:", res.locals.user);
+      // console.log("AUTH USER:", res.locals.user);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getEventOrganizerBySlug = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result = await this.organizerService.getEventOrganizerBySlug(
+        res.locals.user.id,
+        req.params.slug
+      );
+      // console.log("AUTH USER:", res.locals.user);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionPerEventSummary = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result = await this.organizerService.getTransactionPerEventSummary(
+        res.locals.user.id,
+        req.params.slug
+      );
+      // console.log("AUTH USER:", res.locals.user);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTranscationByOrganizer = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result = await this.organizerService.getTranscationByOrganizer(
+        res.locals.user.id
+      );
+      // console.log("AUTH USER:", res.locals.user);
       res.status(200).send(result);
     } catch (error) {
       next(error);
