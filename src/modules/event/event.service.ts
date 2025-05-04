@@ -78,7 +78,6 @@ export class EventService {
     const data = await this.prisma.event.findUnique({
       where: { slug },
       include: { tickets: true, organizer: true },
-      include: { tickets: true, organizer: true },
     });
 
     if (!data) {
