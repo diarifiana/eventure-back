@@ -165,7 +165,10 @@ export class EventController {
 
   deleteEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.eventService.deleteEvent(Number(req.params.id));
+      const result = await this.eventService.deleteEvent(
+        res.locals.user.id,
+        Number(req.params.id)
+      );
       res.status(200).send(result);
     } catch (error) {
       next(error);

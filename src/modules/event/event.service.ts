@@ -258,20 +258,46 @@ export class EventService {
     };
   };
 
-  deleteEvent = async (id: number) => {
+  deleteEvent = async (authUserId: number, id: number) => {
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+    });
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    const organizer = await this.prisma.organizer.findFirst({
+      where: {
+        userId: authUserId,
+      },
+    });
+
+    if (!organizer) {
+      throw new ApiError("Organizer not found", 404);
+    }
+
     const event = await this.prisma.event.findFirst({
       where: { id },
     });
 
     if (!event) {
-      throw new ApiError("Not found", 400);
+      throw new ApiError("Event not found", 404);
     }
 
+    if (event.organizerId !== organizer.id) {
+      throw new ApiError("Unauthorized to delete this event", 403);
+    }
+
+    await this.cloudinaryService.remove(event.thumbnail);
+
     await this.prisma.event.update({
-      where: { id: id },
+      where: { id },
       data: {
         isDeleted: true,
       },
     });
+    return {
+      message: "success delete event",
+    };
   };
 }

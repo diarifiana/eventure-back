@@ -6,6 +6,7 @@ import { CloudinaryService } from "../cloudinary/cloudinary.service";
 import { UpdateOrganizerDTO } from "./dto/update-organizer.dto";
 import { JWT_SECRET_KEY } from "../../config";
 import { TokenService } from "../auth/token.service";
+import { Status } from "../../generated/prisma";
 
 @injectable()
 export class OrganizerService {
@@ -108,7 +109,7 @@ export class OrganizerService {
 
   getEventByOrganizer = async (authUserId: number) => {
     const user = await this.prisma.user.findUnique({
-      where: { id: authUserId },
+      where: { id: authUserId, deletedAt: null },
       include: {
         organizer: true,
       },
@@ -156,7 +157,7 @@ export class OrganizerService {
     };
   };
 
-  getTranscationByOrganizer = async (authUserId: number) => {
+  getTranscationByOrganizer = async (authUserId: number, status?: string) => {
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {
@@ -169,47 +170,33 @@ export class OrganizerService {
     }
 
     const organizerId = user.organizer.id;
-
+    const parsedStatus = Object.values(Status).includes(status as Status)
+      ? (status as Status)
+      : undefined;
+    const baseWhere = {
+      ticket: {
+        event: { organizerId },
+      },
+      isDeleted: false,
+      ...(parsedStatus ? { status: parsedStatus } : {}),
+    };
     const [transactions, totalTransaction, totalTicketQty] = await Promise.all([
       this.prisma.transaction.findMany({
-        where: {
-          ticket: {
-            event: {
-              organizerId,
-            },
-          },
-          isDeleted: false,
-        },
+        where: baseWhere,
         include: {
-          ticket: {
-            include: {
-              event: true,
-            },
-          },
+          ticket: { include: { event: true } },
           user: true,
         },
       }),
       this.prisma.transaction.aggregate({
-        where: {
-          ticket: {
-            event: {
-              organizerId,
-            },
-          },
-          isDeleted: false,
-        },
+        where: baseWhere,
         _count: { uuid: true },
         _sum: { totalAmount: true },
       }),
       this.prisma.transactionDetail.aggregate({
         where: {
           transaction: {
-            ticket: {
-              event: {
-                organizerId,
-              },
-            },
-            isDeleted: false,
+            ...baseWhere,
           },
         },
         _sum: { qty: true },
@@ -218,9 +205,9 @@ export class OrganizerService {
 
     return {
       transactions,
-      totalCount: totalTransaction._count.uuid,
-      totalRevenue: totalTransaction._sum.totalAmount,
-      totalTicket: totalTicketQty._sum.qty, // ✅ total tiket yang dibeli
+      totalCount: totalTransaction._count?.uuid ?? 0,
+      totalRevenue: totalTransaction._sum?.totalAmount ?? 0,
+      totalTicket: totalTicketQty._sum?.qty ?? 0,
     };
   };
 
@@ -295,75 +282,48 @@ export class OrganizerService {
       ? { ticket: { eventId: event?.id } }
       : { ticket: { event: { organizerId } } };
 
-    const [transactions, totalTransaction, totalTicketQty] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where: {
-          ...baseWhere,
-          isDeleted: false,
-        },
-        include: {
-          ticket: { include: { event: true } },
-          user: true,
-        },
-      }),
-      this.prisma.transaction.aggregate({
-        where: {
-          ...baseWhere,
-          isDeleted: false,
-        },
-        _count: { uuid: true },
-        _sum: { totalAmount: true },
-      }),
-      this.prisma.transactionDetail.aggregate({
-        where: {
-          transaction: {
-            ...baseWhere,
-            isDeleted: false,
+    const doneWhere = {
+      ...baseWhere,
+      status: "DONE" as const,
+      isDeleted: false,
+    };
+
+    const baseWhereWithIsDeleted = {
+      ...baseWhere,
+      isDeleted: false,
+    };
+
+    const [transactions, totalTransaction, totalRevenue, totalTicketQty] =
+      await Promise.all([
+        this.prisma.transaction.findMany({
+          where: baseWhereWithIsDeleted, // ✅ Ambil semua transaksi
+          include: {
+            ticket: { include: { event: true } },
+            user: true,
+            transactionDetails: true,
           },
-        },
-        _sum: { qty: true },
-      }),
-    ]);
+        }),
+        this.prisma.transaction.aggregate({
+          where: baseWhereWithIsDeleted, // ✅ Hitung semua transaksi
+          _count: { uuid: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: doneWhere, // ✅ Revenue hanya dari yang DONE
+          _sum: { totalAmount: true },
+        }),
+        this.prisma.transactionDetail.aggregate({
+          where: {
+            transaction: doneWhere, // ✅ Tiket hanya dari transaksi DONE
+          },
+          _sum: { qty: true },
+        }),
+      ]);
 
     return {
-      transactions,
+      transactions, // ✅ Semua transaksi (DONE, REJECTED, dll)
       totalCount: totalTransaction._count.uuid,
-      totalRevenue: totalTransaction._sum.totalAmount || 0,
+      totalRevenue: totalRevenue._sum.totalAmount || 0,
       totalTicket: totalTicketQty._sum.qty || 0,
     };
-  };
-
-  getEventOrganizerBySlug = async (authUserId: number, slug: string) => {
-    const user = await this.prisma.user.findUnique({
-      where: { id: authUserId },
-      include: {
-        organizer: true,
-      },
-    });
-
-    if (!user) {
-      throw new ApiError("User not found", 404);
-    }
-
-    if (!user.organizer) {
-      throw new ApiError("You are not registered as an organizer", 403);
-    }
-
-    const organizerId = user.organizer.id;
-    const event = await this.prisma.event.findFirst({
-      where: {
-        slug,
-        organizerId,
-      },
-      include: {
-        organizer: true,
-        tickets: { include: { transactions: true } },
-      },
-    });
-
-    if (!event) {
-      throw new ApiError("Event not found or does not belong to you", 404);
-    }
-    return event;
   };
 }

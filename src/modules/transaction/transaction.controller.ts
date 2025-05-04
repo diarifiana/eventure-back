@@ -111,7 +111,12 @@ export class TransactionController {
     next: NextFunction
   ) => {
     try {
+      if (req.body.action !== "accept" && req.body.action !== "reject") {
+        throw new ApiError("Invalid action. Must be 'accept' or 'reject'", 400);
+      }
+
       const result = await this.transactionService.updateTransaction(
+        res.locals.user.id,
         req.params.uuid,
         req.body.action
       );

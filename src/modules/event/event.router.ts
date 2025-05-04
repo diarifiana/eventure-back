@@ -100,11 +100,10 @@ export class EventRouter {
     );
 
     this.router.delete(
-      "/:id",
-      verifyToken,
+      "/delete/:id",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
-      validateBody(EventDTO),
-      this.eventController.updateEvent
+      this.eventController.deleteEvent
     );
   };
 

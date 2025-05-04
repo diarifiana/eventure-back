@@ -81,7 +81,7 @@ export class TransactionRouter {
     );
 
     this.router.patch(
-      "/manage/:id",
+      "/update/:uuid",
       verifyToken,
       verifyRole(["ADMIN"]),
       this.transactionController.updateTransaction

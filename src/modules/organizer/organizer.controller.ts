@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
 import { ApiError } from "../../utils/api-error";
 import { OrganizerService } from "./organizer.service";
+import { Status } from "../../generated/prisma";
 
 @injectable()
 export class OrganizerController {
@@ -122,8 +123,10 @@ export class OrganizerController {
     next: NextFunction
   ) => {
     try {
+      const statusQuery = req.query.status as string | undefined;
       const result = await this.organizerService.getTranscationByOrganizer(
-        res.locals.user.id
+        res.locals.user.id,
+        statusQuery
       );
       // console.log("AUTH USER:", res.locals.user);
       res.status(200).send(result);

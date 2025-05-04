@@ -269,31 +269,45 @@ export class TransactionService {
     return transaction;
   };
 
-  updateTransaction = async (uuid: string, action: "accept" | "reject") => {
+  updateTransaction = async (
+    authUserId: number,
+    uuid: string,
+    action: "accept" | "reject"
+  ) => {
     const transaction = await this.prisma.transaction.findUnique({
       where: { uuid },
       include: {
         user: true,
-        ticket: {
+        transactionDetails: {
           include: {
-            event: true,
+            ticket: {
+              include: {
+                event: true,
+              },
+            },
           },
         },
       },
     });
 
-    // cek ada transactionnya gak
-    if (!transaction) {
-      throw new ApiError("Transaction not found", 404);
-    }
-    // cek dlu apakah user udh bayar?
+    if (!transaction) throw new ApiError("Transaction not found", 404);
     if (transaction.status !== "WAITING_CONFIRMATION") {
       throw new ApiError("Transaction cannot be updated at this stage", 400);
     }
-
-    // cek lagi udh up payment proof belom
     if (!transaction.paymentProof) {
       throw new ApiError("User has not uploaded payment proof", 400);
+    }
+
+    // ✅ Validasi bahwa organizer yang update adalah pemilik event
+    const isAuthorized = transaction.transactionDetails.some(
+      (detail) => detail.ticket.event.organizerId === authUserId
+    );
+
+    if (!isAuthorized) {
+      throw new ApiError(
+        "You are not authorized to update this transaction",
+        403
+      );
     }
 
     let updateStatus: "DONE" | "REJECTED";
@@ -310,60 +324,101 @@ export class TransactionService {
       emailSubject = "🎉 Your transaction has been accepted";
     }
 
-    // kalo reject,
-    if (action === "reject") {
-      await this.prisma.$transaction(async (tx) => {
-        // kembaliin voucher
-        // if (transaction.voucherId) {
-        //   await tx.voucher.update({
-        //     where: { id: transaction.voucherId },
-        //     // data: { qty: { increment: transaction.qty } },
-        //   });
-        // }
-        // kembaliin point
-        if (transaction.usePoints) {
-          await tx.pointDetail.update({
-            where: { userId: transaction.userId },
-            data: { amount: { increment: transaction.totalAmount } },
+    await this.prisma.$transaction(async (tx) => {
+      if (action === "reject") {
+        // ✅ Kembalikan tiket
+        for (const detail of transaction.transactionDetails) {
+          await tx.ticket.update({
+            where: { id: detail.ticketId },
+            data: {
+              qty: { increment: detail.qty },
+            },
           });
         }
-        // kembaliin total toket
-        // await tx.ticket.update({
-        //   where: { id: transaction.ticketId },
-        //   // data: { qty: { increment: transaction.qty } },
-        // });
-        // kembaliin referral kupon
-        // if (transaction.referralCouponId) {
-        //   await tx.referralCoupon.update({
-        //     where: { id: transaction.referralCouponId },
-        //     data: { isClaimed: false },
-        //   });
-        // }
-      });
-    }
 
-    // baru deh update transaksi trus abistu kirim email
-    const updatedTransaction = await this.prisma.transaction.update({
-      where: { uuid },
-      data: { status: updateStatus },
+        // ✅ Kembalikan point jika ada
+        if (transaction.usePoints && transaction.pointsUsed) {
+          await tx.pointDetail.update({
+            where: { userId: transaction.userId },
+            data: { amount: { increment: transaction.pointsUsed } },
+          });
+        }
+
+        // ✅ Kembalikan voucher qty jika digunakan
+        if (transaction.voucherUsed) {
+          await tx.voucher.update({
+            where: { code: transaction.voucherUsed },
+            data: { qty: { increment: 1 } },
+          });
+        }
+
+        // ✅ Tandai referral coupon belum diklaim
+        if (transaction.referralCouponUsed) {
+          await tx.referralCoupon.update({
+            where: { referralCoupon: transaction.referralCouponUsed },
+            data: { isClaimed: false },
+          });
+        }
+
+        // ✅ Hapus job-job otomatis terkait transaksi
+        // Remove the expire-transaction job
+        const expireJob =
+          await this.transactionQueue.userTransactionQueue.getJob(
+            `expire-transaction:${uuid}`
+          );
+        if (expireJob) {
+          await expireJob.remove();
+        }
+
+        // Remove the organization-response job
+        const organizationJob =
+          await this.transactionQueue.userTransactionQueue.getJob(
+            `organization-response:${uuid}`
+          );
+        if (organizationJob) {
+          await organizationJob.remove();
+        }
+      }
+
+      if (action === "accept") {
+        // (Opsional) Tambahkan job lanjutan jika perlu
+        await this.transactionQueue.userTransactionQueue.add(
+          "organizer-followup",
+          { uuid },
+          {
+            jobId: `organizer-followup:${uuid}`,
+            delay: 5 * 24 * 60 * 60 * 1000,
+            removeOnComplete: true,
+            attempts: 3,
+            backoff: { type: "exponential", delay: 1000 },
+          }
+        );
+      }
+
+      // ✅ Update status transaksi
+      await tx.transaction.update({
+        where: { uuid },
+        data: { status: updateStatus },
+      });
     });
 
+    // ✅ Kirim email
     await this.mailService.sendEmail(
       transaction.user.email,
       emailSubject,
       templateFile,
       {
-        name: transaction.user.fullName,
+        fullname: transaction.user.fullName,
         transactionId: uuid,
         transactionAmount: transaction.totalAmount,
-        eventName: transaction.ticket?.event.name,
+        eventName: transaction.transactionDetails[0]?.ticket.event.name,
         transactionDate: transaction.createdAt,
       }
     );
 
     return {
       message: `Transaction ${action}ed successfully`,
-      data: updatedTransaction,
+      data: { uuid, status: updateStatus },
     };
   };
 
