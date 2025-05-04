@@ -98,7 +98,7 @@ export class TransactionService {
         await tx.event.update({
           where: { id: ticket.eventId },
           data: {
-            ticketSold: {
+            totalTransactions: {
               increment: detail.qty,
             },
           },
@@ -119,10 +119,12 @@ export class TransactionService {
       totalToPay -= usedPoints;
       availablePoints -= usedPoints;
 
-      await tx.pointDetail.update({
-        where: { userId: authUserId },
-        data: { amount: availablePoints },
-      });
+      if (usedPoints > 0) {
+        await tx.pointDetail.update({
+          where: { userId: authUserId },
+          data: { amount: availablePoints },
+        });
+      }
 
       if (couponDiscount > 0) {
         await tx.referralCoupon.update({

@@ -1,13 +1,12 @@
-import { PrismaService } from "../prisma/prisma.service";
+import { injectable } from "tsyringe";
+import { CategoryName, Location, Prisma } from "../../generated/prisma";
 import { ApiError } from "../../utils/api-error";
 import { generateSlug } from "../../utils/generateSlug";
-import { injectable } from "tsyringe";
-import { EventDTO } from "./dto/event.dto";
-import { CategoryName, Location, Prisma } from "../../generated/prisma";
-import { GetEventsDTO } from "./dto/get-events.dto";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { EventDTO } from "./dto/event.dto";
+import { GetEventsDTO } from "./dto/get-events.dto";
 import { UpdateEventDTO } from "./dto/update-event.dto";
-import { JwtMiddleware } from "../../middlewares/jwt.middleware";
 
 @injectable()
 export class EventService {
