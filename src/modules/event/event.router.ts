@@ -22,7 +22,6 @@ export class EventRouter {
     JwtMiddleware: JwtMiddleware,
     UploaderMiddleware: UploaderMiddleware
   ) {
-    console.log("Constructing EventRouter");
     this.router = Router();
     this.eventController = EventController;
     this.jwtMiddleware = JwtMiddleware;
@@ -33,7 +32,7 @@ export class EventRouter {
   private initializeRoutes = () => {
     this.router.post(
       "/",
-      verifyToken,
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
       uploader(1).fields([{ name: "thumbnail", maxCount: 1 }]),
       this.uploaderMiddleware.fileFilter([
@@ -87,11 +86,6 @@ export class EventRouter {
       "/:id/attendees",
       verifyRole(["ADMIN"]),
       this.eventController.getEventAttendees
-    );
-
-    this.router.get(
-      "/category/:slug",
-      this.eventController.getEventsByCategory
     );
 
     this.router.get(

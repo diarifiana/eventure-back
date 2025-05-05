@@ -14,7 +14,6 @@ export class EventController {
 
   constructor(EventService: EventService) {
     console.log("Constructing EventController");
-    // console.log("EventController constructor called", EventService);
     this.eventService = EventService;
   }
 
@@ -23,14 +22,18 @@ export class EventController {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const picture = files.thumbnail?.[0];
       const body = plainToInstance(EventDTO, req.body);
-
-      // const userId = res.locals.user?.id;
+      console.log(res.locals);
+      const authUserId = res.locals.user.id as number;
 
       if (!files) {
         throw new ApiError("No files selected", 400);
       }
 
-      const result = await this.eventService.createEvent(body, picture);
+      const result = await this.eventService.createEvent(
+        body,
+        picture,
+        authUserId
+      );
 
       res.status(200).send(result);
     } catch (error) {
@@ -52,22 +55,6 @@ export class EventController {
     try {
       const slug = req.params.slug;
       const result = await this.eventService.getEvent(slug);
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  getEventsByCategory = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      const slug = req.params.slug as CategoryName;
-      const query = plainToInstance(GetEventsDTO, req.query);
-      const result = await this.eventService.getEventsByCategory(slug, query);
-
       res.status(200).send(result);
     } catch (error) {
       next(error);
