@@ -32,11 +32,32 @@ export class OrganizerRouter {
 
   private initializeRoutes = () => {
     // getEventsByOrganizer
+
+    this.router.get(
+      "/transactions",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getTranscationByOrganizer
+    );
+
+    this.router.get(
+      "/transactions/event/:slug",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getTransactionPerEventSummary
+    );
+
     this.router.get(
       "/events",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
       this.organizerController.getEventByOrganizer
+    );
+    this.router.get(
+      "/events/:slug",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getEventOrganizerBySlug
     );
 
     this.router.get(
