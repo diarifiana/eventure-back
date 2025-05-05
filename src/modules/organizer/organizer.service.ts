@@ -186,6 +186,7 @@ export class OrganizerService {
         include: {
           ticket: { include: { event: true } },
           user: true,
+          transactionDetails: true,
         },
       }),
       this.prisma.transaction.aggregate({
@@ -303,7 +304,7 @@ export class OrganizerService {
     const [transactions, totalTransaction, totalRevenue, totalTicketQty] =
       await Promise.all([
         this.prisma.transaction.findMany({
-          where: baseWhereWithIsDeleted, // ✅ Ambil semua transaksi
+          where: baseWhereWithIsDeleted,
           include: {
             ticket: { include: { event: true } },
             user: true,

@@ -39,6 +39,7 @@ export class OrganizerRouter {
       verifyRole(["ADMIN"]),
       this.organizerController.getTranscationByOrganizer
     );
+
     this.router.get(
       "/transactions/event/:slug",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
