@@ -15,7 +15,11 @@ export class VoucherController {
 
   createVoucher = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.voucherService.createVoucher(req.body);
+      const authUserId = res.locals.user.id as number;
+      const result = await this.voucherService.createVoucher(
+        req.body,
+        authUserId
+      );
       res.status(200).send(result);
     } catch (error) {
       next(error);

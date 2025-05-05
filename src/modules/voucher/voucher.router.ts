@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { injectable } from "tsyringe";
 import { VoucherController } from "./voucher.controller";
+import { verifyToken } from "../../lib/jwt";
+import { verifyRole } from "../../middlewares/role.middleware";
 
 @injectable()
 export class VoucherRouter {
@@ -14,7 +16,12 @@ export class VoucherRouter {
   }
 
   private initializeRoutes = () => {
-    this.router.post("/", this.voucherController.createVoucher);
+    this.router.post(
+      "/",
+      verifyToken,
+      verifyRole(["ADMIN"]),
+      this.voucherController.createVoucher
+    );
     this.router.get("/", this.voucherController.getVoucherByEvent);
     this.router.delete("/:id", this.voucherController.deleteVoucher);
   };

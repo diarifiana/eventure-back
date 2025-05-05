@@ -108,8 +108,8 @@ model Event {
 
 model Voucher {
   id             Int           @id @default(autoincrement())
-  eventSlug      String
-  event          Event         @relation(fields: [eventSlug], references: [slug])
+  eventId        Int
+  event          Event         @relation(fields: [eventId], references: [id])
   code           String        @unique
   discountAmount Int
   startDate      DateTime

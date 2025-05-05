@@ -1,10 +1,9 @@
 import { injectable } from "tsyringe";
 import { ApiError } from "../../utils/api-error";
-import { PrismaService } from "../prisma/prisma.service";
-import { CreateVoucherDTO } from "./dto/create-voucher.dto";
-import { TransactionDTO } from "../transaction/dto/transaction.dto";
-import { eventNames } from "process";
 import { EventDTO } from "../event/dto/event.dto";
+import { PrismaService } from "../prisma/prisma.service";
+import { TransactionDTO } from "../transaction/dto/transaction.dto";
+import { CreateVoucherDTO } from "./dto/create-voucher.dto";
 
 @injectable()
 export class VoucherService {
@@ -14,7 +13,7 @@ export class VoucherService {
     this.prisma = PrismaClient;
   }
 
-  createVoucher = async (body: CreateVoucherDTO) => {
+  createVoucher = async (body: CreateVoucherDTO, authUserId: number) => {
     const event = await this.prisma.event.findFirst({
       where: { id: Number(body.eventId) },
     });
@@ -23,29 +22,32 @@ export class VoucherService {
       throw new ApiError("Data Not Found", 404);
     }
 
+    const organizer = await this.prisma.organizer.findFirst({
+      where: { userId: authUserId },
+    });
+
+    if (!organizer || organizer.id !== event.organizerId) {
+      throw new ApiError("Unauthorized", 401);
+    }
+
     const startDate = new Date(body.startDate);
     const endDate = new Date(body.endDate);
-    const { eventId, code, discountAmount, qty } = body;
 
-    if (
-      endDate <= startDate ||
-      Number(body.discountAmount) <= 0 ||
-      Number(body.qty) <= 0
-    ) {
+    if (endDate <= startDate || Number(body.discountAmount) <= 0) {
       throw new ApiError("Data invalid", 400);
     }
 
-    // const newVoucher = await this.prisma.voucher.create({
-    //   data: {
-    //     eventId: Number(eventId),
-    //     code,
-    //     discountAmount: Number(discountAmount),
-    //     qty: Number(qty),
-    //     startDate,
-    //     endDate,
-    //   },
-    // });
-    // return newVoucher;
+    const newVoucher = await this.prisma.voucher.create({
+      data: {
+        eventId: Number(eventId),
+        code,
+        discountAmount: Number(discountAmount),
+        qty: Number(qty),
+        startDate,
+        endDate,
+      },
+    });
+    return newVoucher;
   };
 
   deleteVoucher = async (id: number) => {
