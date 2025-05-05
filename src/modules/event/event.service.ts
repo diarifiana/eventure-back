@@ -23,7 +23,19 @@ export class EventService {
     this.cloudinaryService = CloudinaryService;
   }
 
-  createEvent = async (body: EventDTO, picture: Express.Multer.File) => {
+  createEvent = async (
+    body: EventDTO,
+    picture: Express.Multer.File,
+    authUserId: number
+  ) => {
+    const organizer = await this.prisma.organizer.findFirst({
+      where: { userId: authUserId },
+    });
+
+    if (!organizer || organizer.userId !== authUserId) {
+      throw new ApiError("Unauthorized", 401);
+    }
+
     const existing = await this.prisma.event.findFirst({
       where: { name: body.name },
     });
@@ -38,16 +50,20 @@ export class EventService {
     const { secure_url } = await this.cloudinaryService.upload(picture);
     console.log(body);
 
-    const eventNew = await this.prisma.event.create({
-      data: { ...body, slug: slug, thumbnail: secure_url },
+    const newEvent = await this.prisma.event.create({
+      data: {
+        ...body,
+        slug: slug,
+        thumbnail: secure_url,
+        organizerId: organizer.id,
+      },
     });
 
-    return { message: "Created successfully", eventNew };
+    return { message: "Created successfully", newEvent };
   };
 
-  // DTO Data Transfer Object yang mendefinisikan struktur data yang diharapkan untuk parameter query
   getEvents = async (query: GetEventsDTO) => {
-    const { page, take, sortBy, sortOrder, search } = query;
+    const { page, take, sortBy, sortOrder, search, category } = query;
 
     const whereClause: Prisma.EventWhereInput = {
       isDeleted: false,
@@ -57,11 +73,14 @@ export class EventService {
       whereClause.name = { contains: search, mode: "insensitive" };
     }
 
+    if (category) {
+      whereClause.category = category;
+    }
+
     const events = await this.prisma.event.findMany({
       where: whereClause,
       include: { tickets: true, organizer: true },
       orderBy: { [sortBy]: sortOrder },
-      // sortBy created at, sortOrder desc?
       skip: (page - 1) * take,
       take,
     });
@@ -95,34 +114,6 @@ export class EventService {
       throw new Error("Event not found");
     }
     return events;
-  };
-
-  getEventsByCategory = async (slug: CategoryName, query: GetEventsDTO) => {
-    const { page, take, sortBy, sortOrder, search } = query;
-
-    const whereClause: Prisma.EventWhereInput = {
-      isDeleted: false,
-      category: slug,
-    };
-
-    if (search) {
-      whereClause.name = { contains: search, mode: "insensitive" };
-    }
-
-    const events = await this.prisma.event.findMany({
-      where: whereClause,
-      include: { tickets: true, organizer: true },
-      orderBy: { [sortBy]: sortOrder },
-      // sortBy created at, sortOrder desc?
-      skip: (page - 1) * take,
-      take,
-    });
-
-    const count = await this.prisma.event.count({ where: whereClause });
-    return {
-      data: events,
-      meta: { page, take, total: count },
-    };
   };
 
   getEventsByLocation = async (location: Location, query: GetEventsDTO) => {
