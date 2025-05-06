@@ -20,6 +20,7 @@ import { ReferralService } from "./referral.service";
 import { TokenService } from "./token.service";
 import { sign } from "jsonwebtoken";
 import { access } from "fs";
+import { generateSlug } from "../../utils/generateSlug";
 
 @injectable()
 export class AuthService {
@@ -78,8 +79,10 @@ export class AuthService {
       });
 
       if (organizerName) {
+        const slug = generateSlug(organizerName);
         await tx.organizer.create({
           data: {
+            slug: slug,
             userId: createdUser.id,
             name: organizerName,
             profilePic:

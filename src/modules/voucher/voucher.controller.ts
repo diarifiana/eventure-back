@@ -1,9 +1,9 @@
+import { plainToInstance } from "class-transformer";
 import { NextFunction, Request, Response } from "express";
 import { injectable } from "tsyringe";
-import { VoucherService } from "./voucher.service";
-import { plainToInstance } from "class-transformer";
-import { CreateVoucherDTO } from "./dto/create-voucher.dto";
 import { EventDTO } from "../event/dto/event.dto";
+import { VoucherService } from "./voucher.service";
+import { CreateVoucherDTO } from "./dto/create-voucher.dto";
 
 @injectable()
 export class VoucherController {
@@ -15,11 +15,10 @@ export class VoucherController {
 
   createVoucher = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const body = plainToInstance(CreateVoucherDTO, req.body);
+      console.log("body is here", body);
       const authUserId = res.locals.user.id as number;
-      const result = await this.voucherService.createVoucher(
-        req.body,
-        authUserId
-      );
+      const result = await this.voucherService.createVoucher(body, authUserId);
       res.status(200).send(result);
     } catch (error) {
       next(error);

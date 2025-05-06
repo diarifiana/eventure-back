@@ -49,9 +49,9 @@ export class TransactionController {
     next: NextFunction
   ) => {
     try {
-      const userId = res.locals.user.id;
+      const authUserId = res.locals.user.id;
       const result = await this.transactionService.getTransactionsByUser(
-        userId
+        authUserId
       );
       res.status(200).send(result);
     } catch (error) {

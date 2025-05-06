@@ -12,7 +12,11 @@ export class ReviewController {
 
   createReview = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.reviewService.createReview(req.body);
+      const uuid = req.params.uuid;
+      const body = req.body;
+
+      console.log(uuid, body, "ini data fe");
+      const result = await this.reviewService.createReview(body, uuid);
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -26,7 +30,7 @@ export class ReviewController {
   ) => {
     try {
       const result = await this.reviewService.getReviewsOrganizer(
-        Number(req.params.id)
+        req.params.slug
       );
       res.status(200).send(result);
     } catch (error) {

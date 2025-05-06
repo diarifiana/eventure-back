@@ -58,6 +58,13 @@ export class TransactionRouter {
     );
 
     this.router.get(
+      "/",
+      verifyToken,
+      verifyRole(["USER"]),
+      this.transactionController.getTransactionsByUser
+    );
+
+    this.router.get(
       "/organizers/:id/revenue",
       verifyToken,
       verifyRole(["ADMIN"]),

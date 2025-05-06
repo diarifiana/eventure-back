@@ -1,26 +1,28 @@
 import { Router } from "express";
 import { injectable } from "tsyringe";
-import { JWT_SECRET_KEY } from "../../config";
+import { TicketController } from "./ticket.controller";
 import { JwtMiddleware } from "../../middlewares/jwt.middleware";
+import { JWT_SECRET_KEY } from "../../config";
 import { verifyRole } from "../../middlewares/role.middleware";
+import { CreateTicketDTO } from "./dto/createTicket.dto";
 import { validateBody } from "../../middlewares/validation.middleware";
-import { CreateVoucherDTO } from "./dto/create-voucher.dto";
-import { VoucherController } from "./voucher.controller";
 
 @injectable()
-export class VoucherRouter {
+export class TicketRouter {
   private router: Router;
-  private voucherController: VoucherController;
+  private ticketController: TicketController;
   private jwtMiddleware: JwtMiddleware;
 
   constructor(
-    VoucherController: VoucherController,
+    TicketController: TicketController,
     JwtMiddleware: JwtMiddleware
   ) {
     this.router = Router();
-    this.voucherController = VoucherController;
+    this.ticketController = TicketController;
     this.jwtMiddleware = JwtMiddleware;
     this.initializeRoutes();
+
+    console.log("sampe ticket router");
   }
 
   private initializeRoutes = () => {
@@ -28,11 +30,9 @@ export class VoucherRouter {
       "/",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
-      validateBody(CreateVoucherDTO),
-      this.voucherController.createVoucher
+      validateBody(CreateTicketDTO),
+      this.ticketController.createTicket
     );
-    this.router.get("/", this.voucherController.getVoucherByEvent);
-    this.router.delete("/:id", this.voucherController.deleteVoucher);
   };
 
   getRouter() {

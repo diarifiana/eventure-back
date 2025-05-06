@@ -5,7 +5,7 @@ import { NextFunction, Request, Response } from "express";
 export function validateBody(dtoClass: any) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const dtoInstance = plainToInstance(dtoClass, req.body);
-
+    console.log(dtoInstance);
     const errors = await validate(dtoInstance);
 
     if (errors.length > 0) {
@@ -16,7 +16,7 @@ export function validateBody(dtoClass: any) {
       res.status(400).send({ message });
       return;
     }
-
+    console.log("body is verified");
     next();
   };
 }

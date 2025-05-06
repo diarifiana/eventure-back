@@ -261,6 +261,33 @@ export class OrganizerService {
     };
   };
 
+
+  getEventsForOrganizer = async (authUserId: number) => {
+    const organizer = await this.prisma.organizer.findFirst({
+      where: { userId: authUserId },
+    });
+
+    if (!organizer) {
+      throw new ApiError("Organizer not found", 400);
+    }
+
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        transactionDetails: {
+          some: {
+            ticket: {
+              event: {
+                organizerId: organizer.id,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return transactions;
+  };
+
   // getTranscationByOrganizer = async (authUserId: number, status?: string) => {
   //   // getTransactionByOrganizer = async (authUserId: number, status?: string) => {
   //   const user = await this.prisma.user.findUnique({
@@ -333,7 +360,7 @@ export class OrganizerService {
   //     totalRevenue: totalTransaction._sum?.totalAmount ?? 0,
   //     totalTicket: totalTicketQty._sum?.qty ?? 0,
   //   };
-  // };
+
 
   getEventOrganizerBySlug = async (authUserId: number, slug: string) => {
     const user = await this.prisma.user.findUnique({
@@ -747,5 +774,18 @@ export class OrganizerService {
       data: updatedOrganizerBank,
       message: "Data organizer updated successfully",
     };
+  };
+    
+    getOrganizer = async (slug: string) => {
+    const organizer = await this.prisma.organizer.findFirst({
+      where: { slug },
+      include: { events: true },
+    });
+
+    if (!organizer) {
+      throw new ApiError("Organizer not found", 400);
+    }
+
+    return organizer;
   };
 }

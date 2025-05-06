@@ -1,15 +1,14 @@
 import { Router } from "express";
 import { injectable } from "tsyringe";
-import { validateBody } from "../../middlewares/validation.middleware";
-import { EventController } from "./event.controller";
-import { EventDTO } from "./dto/event.dto";
-import { verifyToken } from "../../lib/jwt";
+import { JWT_SECRET_KEY } from "../../config";
+import { uploader } from "../../lib/multer";
+import { JwtMiddleware } from "../../middlewares/jwt.middleware";
 import { verifyRole } from "../../middlewares/role.middleware";
 import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
-import { uploader } from "../../lib/multer";
-import { JWT_SECRET_KEY } from "../../config";
-import { JwtMiddleware } from "../../middlewares/jwt.middleware";
+import { validateBody } from "../../middlewares/validation.middleware";
+import { EventDTO } from "./dto/event.dto";
 import { UpdateEventDTO } from "./dto/update-event.dto";
+import { EventController } from "./event.controller";
 
 @injectable()
 export class EventRouter {
