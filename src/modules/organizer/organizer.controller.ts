@@ -180,14 +180,12 @@ export class OrganizerController {
     next: NextFunction
   ) => {
     try {
-      // const statusQuery = req.query.status as string | undefined;
       const { period, status } = req.query;
       const result = await this.organizerService.getTransactionStatsByPeriod(
         res.locals.user.id,
         period as string,
         status as string
       );
-      // console.log("AUTH USER:", res.locals.user);
       res.status(200).send(result);
     } catch (error) {
       next(error);

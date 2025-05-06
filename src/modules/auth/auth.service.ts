@@ -378,7 +378,6 @@ export class AuthService {
     authUserId: number,
     profilePic: Express.Multer.File
   ) => {
-    // Cari user
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {

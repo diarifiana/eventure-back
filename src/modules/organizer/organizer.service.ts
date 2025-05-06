@@ -31,7 +31,7 @@ export class OrganizerService {
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {
-        organizer: true, // include relasi ke organizer
+        organizer: true,
       },
     });
 
@@ -66,7 +66,6 @@ export class OrganizerService {
       throw new ApiError("User does not have an organizer", 400);
     }
 
-    // Upload ke Cloudinary
     const { secure_url } = await this.cloudinaryService.upload(profilePic);
     console.log(secure_url);
 
@@ -88,7 +87,7 @@ export class OrganizerService {
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {
-        organizer: true, // include relasi ke organizer
+        organizer: true,
       },
     });
     const organizer = user?.organizer;
@@ -165,7 +164,6 @@ export class OrganizerService {
     query: GetTransactionsDTO,
     status?: string
   ) => {
-    // getTransactionByOrganizer = async (authUserId: number, status?: string) => {
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {
@@ -179,31 +177,54 @@ export class OrganizerService {
 
     const organizerId = user.organizer.id;
     const { search, take, page, sortBy, sortOrder } = query;
+
     const parsedStatus = Object.values(Status).includes(status as Status)
       ? (status as Status)
       : undefined;
 
-    // Updated where clause using relation filters
     const baseWhere: Prisma.TransactionWhereInput = {
       transactionDetails: {
         some: {
           ticket: {
             event: {
               organizerId,
-              ...(search
-                ? {
-                    name: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
-                  }
-                : {}),
             },
           },
         },
       },
       isDeleted: false,
       ...(parsedStatus ? { status: parsedStatus } : {}),
+      // Add search functionality for both event name and user email
+      ...(search
+        ? {
+            OR: [
+              {
+                // Search by event name
+                transactionDetails: {
+                  some: {
+                    ticket: {
+                      event: {
+                        name: {
+                          contains: search,
+                          mode: "insensitive",
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                // Search by user email
+                user: {
+                  email: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
     };
 
     const [transactions, totalTransaction, totalTicketQty, count] =
@@ -260,80 +281,6 @@ export class OrganizerService {
       },
     };
   };
-
-  // getTranscationByOrganizer = async (authUserId: number, status?: string) => {
-  //   // getTransactionByOrganizer = async (authUserId: number, status?: string) => {
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { id: authUserId },
-  //     include: {
-  //       organizer: true,
-  //     },
-  //   });
-
-  //   if (!user?.organizer) {
-  //     throw new ApiError("You don't have an organizer", 404);
-  //   }
-
-  //   const organizerId = user.organizer.id;
-  //   const parsedStatus = Object.values(Status).includes(status as Status)
-  //     ? (status as Status)
-  //     : undefined;
-
-  //   // Updated where clause using relation filters
-  //   const baseWhere = {
-  //     transactionDetails: {
-  //       some: {
-  //         ticket: {
-  //           event: {
-  //             organizerId,
-  //           },
-  //         },
-  //       },
-  //     },
-  //     isDeleted: false,
-  //     ...(parsedStatus ? { status: parsedStatus } : {}),
-  //   };
-
-  //   const [transactions, totalTransaction, totalTicketQty] = await Promise.all([
-  //     this.prisma.transaction.findMany({
-  //       where: baseWhere,
-  //       include: {
-  //         user: true,
-  //         transactionDetails: {
-  //           include: {
-  //             ticket: {
-  //               include: {
-  //                 event: true,
-  //               },
-  //             },
-  //           },
-  //         },
-  //         voucher: true,
-  //         referralCoupon: true,
-  //       },
-  //     }),
-  //     this.prisma.transaction.aggregate({
-  //       where: baseWhere,
-  //       _count: { uuid: true },
-  //       _sum: { totalAmount: true },
-  //     }),
-  //     this.prisma.transactionDetail.aggregate({
-  //       where: {
-  //         transaction: {
-  //           ...baseWhere,
-  //         },
-  //       },
-  //       _sum: { qty: true },
-  //     }),
-  //   ]);
-
-  //   return {
-  //     transactions,
-  //     totalCount: totalTransaction._count?.uuid ?? 0,
-  //     totalRevenue: totalTransaction._sum?.totalAmount ?? 0,
-  //     totalTicket: totalTicketQty._sum?.qty ?? 0,
-  //   };
-  // };
 
   getEventOrganizerBySlug = async (authUserId: number, slug: string) => {
     const user = await this.prisma.user.findUnique({
@@ -485,7 +432,6 @@ export class OrganizerService {
     period?: string,
     status?: string
   ) => {
-    // Validate user is an organizer
     const user = await this.prisma.user.findUnique({
       where: { id: authUserId },
       include: {
@@ -499,40 +445,32 @@ export class OrganizerService {
 
     const organizerId = user.organizer.id;
 
-    // Parse status if provided
     const parsedStatus = Object.values(Status).includes(status as Status)
       ? (status as Status)
       : undefined;
 
-    // Set default period if not provided
     const validPeriods = ["daily", "weekly", "monthly", "yearly"];
     const selectedPeriod =
       period && validPeriods.includes(period) ? period : "monthly";
 
-    // Define time range based on period
     const now = new Date();
     let startDate = new Date();
 
     switch (selectedPeriod) {
       case "daily":
-        // Last 30 days
         startDate.setDate(now.getDate() - 30);
         break;
       case "weekly":
-        // Last 12 weeks
-        startDate.setDate(now.getDate() - 84); // 12 * 7 days
+        startDate.setDate(now.getDate() - 84);
         break;
       case "monthly":
-        // Last 6 months
         startDate.setMonth(now.getMonth() - 6);
         break;
       case "yearly":
-        // Last 5 years
         startDate.setFullYear(now.getFullYear() - 5);
         break;
     }
 
-    // Get all transactions for this organizer within the time period
     const transactions = await this.prisma.transaction.findMany({
       where: {
         transactionDetails: {
@@ -562,11 +500,9 @@ export class OrganizerService {
       },
     });
 
-    // Process the transactions to get statistics by period
     const statsMap = new Map();
 
     transactions.forEach((transaction) => {
-      // Format date based on period
       let label = "";
       const date = new Date(transaction.createdAt);
 
@@ -575,7 +511,6 @@ export class OrganizerService {
           label = date.toISOString().split("T")[0]; // YYYY-MM-DD
           break;
         case "weekly":
-          // Get the week number and year
           const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
           const pastDaysOfYear =
             (date.getTime() - firstDayOfYear.getTime()) / 86400000;
@@ -594,7 +529,6 @@ export class OrganizerService {
           break;
       }
 
-      // Get existing stats or create new entry
       const stats = statsMap.get(label) || {
         label,
         transactions: 0,
@@ -602,25 +536,20 @@ export class OrganizerService {
         revenue: 0,
       };
 
-      // Calculate quantities
       const ticketQty = transaction.transactionDetails.reduce(
         (sum, detail) => sum + detail.qty,
         0
       );
 
-      // Update stats
       stats.transactions += 1;
       stats.tickets += ticketQty;
       stats.revenue += Number(transaction.totalAmount);
 
-      // Update map
       statsMap.set(label, stats);
     });
 
-    // Convert map to array and sort by label
     const stats = Array.from(statsMap.values());
 
-    // Calculate summary totals
     const summary = {
       totalTransactions: stats.reduce(
         (sum, item) => sum + item.transactions,
@@ -681,18 +610,6 @@ export class OrganizerService {
       take,
       skip: take * (page - 1),
     });
-    // console.log("organizerEvents", organizerEvents);
-    // const eventsWithTransactionCount = organizerEvents.map((event) => {
-    //   const totalTransactions = event.tickets.reduce(
-    //     (acc, ticket) => acc + ticket.transactions.length,
-    //     0
-    //   );
-
-    //   return {
-    //     data: organizerEvents,
-    //     totalTransactions,
-    //   };
-    // });
 
     const count = await this.prisma.event.count({
       where: whereClause,

@@ -370,7 +370,6 @@ export class TransactionService {
           });
         }
 
-        // ✅ Tandai referral coupon belum diklaim
         if (transaction.referralCouponUsed) {
           await tx.referralCoupon.update({
             where: { referralCoupon: transaction.referralCouponUsed },
@@ -415,7 +414,6 @@ export class TransactionService {
       });
     });
 
-    // ✅ Kirim email
     await this.mailService.sendEmail(
       transaction.user.email,
       emailSubject,
