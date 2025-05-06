@@ -1,11 +1,7 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsString } from "class-validator";
 import { Rating } from "../../../generated/prisma";
 
 export class CreateReviewDTO {
-  @IsNotEmpty()
-  @IsNumber()
-  readonly transactionId!: number;
-
   @IsNotEmpty()
   @IsString()
   readonly review!: string;

@@ -15,7 +15,7 @@ export class VoucherService {
 
   createVoucher = async (body: CreateVoucherDTO, authUserId: number) => {
     const event = await this.prisma.event.findFirst({
-      where: { id: Number(body.eventId) },
+      where: { name: body.eventName },
     });
 
     if (!event) {
@@ -33,18 +33,17 @@ export class VoucherService {
     const startDate = new Date(body.startDate);
     const endDate = new Date(body.endDate);
 
-    if (endDate <= startDate || Number(body.discountAmount) <= 0) {
+    if (endDate <= startDate || body.discountAmount <= 0) {
       throw new ApiError("Data invalid", 400);
     }
 
     const newVoucher = await this.prisma.voucher.create({
       data: {
-        eventId: Number(eventId),
-        code,
-        discountAmount: Number(discountAmount),
-        qty: Number(qty),
-        startDate,
-        endDate,
+        eventName: body.eventName,
+        code: body.code,
+        discountAmount: body.discountAmount,
+        startDate: startDate,
+        endDate: endDate,
       },
     });
     return newVoucher;

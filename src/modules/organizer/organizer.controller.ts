@@ -28,6 +28,22 @@ export class OrganizerController {
     }
   };
 
+  getEventsForOrganizer = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const authUserId = Number(req.params.id);
+      const result = await this.organizerService.getEventsForOrganizer(
+        authUserId
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   uploadOrganizerPic = async (
     req: Request,
     res: Response,
@@ -129,6 +145,16 @@ export class OrganizerController {
         statusQuery
       );
       // console.log("AUTH USER:", res.locals.user);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOrganizer = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const slug = req.params.slug;
+      const result = await this.organizerService.getOrganizer(slug);
       res.status(200).send(result);
     } catch (error) {
       next(error);

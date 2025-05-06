@@ -17,13 +17,13 @@ export class ReviewRouter {
 
   private initializeRoutes = () => {
     this.router.post(
-      "/",
+      "/:uuid",
       validateBody(CreateReviewDTO),
       this.reviewController.createReview
     );
 
     this.router.get(
-      "/organizer/:id",
+      "/organizer/:slug",
       this.reviewController.getReviewsOrganizer
     );
 

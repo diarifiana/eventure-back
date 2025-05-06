@@ -14,11 +14,11 @@ export class PointService {
   getAvailablePoints = async (body: TransactionDTO, authUserId: number) => {
     if (body.usePoints === true) {
       const point = await this.prisma.pointDetail.findFirst({
-        where: { userId: authUserId },
+        where: { userId: authUserId, expiredAt: { gt: new Date() } },
       });
 
       if (!point || point.amount === 0) {
-        throw new ApiError("Points invalid", 400);
+        throw new ApiError("You do not have any points", 400);
       } else {
         return point.amount;
       }
