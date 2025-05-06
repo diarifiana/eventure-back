@@ -9,6 +9,10 @@ import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { validateBody } from "../../middlewares/validation.middleware";
 import { UpdateOrganizerDTO } from "./dto/update-organizer.dto";
 import { OrganizerController } from "./organizer.controller";
+import { verifyToken } from "../../lib/jwt";
+import { verifyRole } from "../../middlewares/role.middleware";
+import { UpdateBankDetailsDTO } from "./dto/update-bank-details.sto";
+
 
 @injectable()
 export class OrganizerRouter {
@@ -40,6 +44,13 @@ export class OrganizerRouter {
     );
 
     this.router.get(
+      "/transaction-stats",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getTransactionStatsByPeriod
+    );
+    
+     this.router.get(
       "/transactions/:id",
       // this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       // verifyRole(["ADMIN"]),
@@ -53,17 +64,18 @@ export class OrganizerRouter {
       this.organizerController.getTransactionPerEventSummary
     );
 
+    // this.router.get(
+    //   "/events",
+    //   this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+    //   verifyRole(["ADMIN"]),
+    //   this.organizerController.getEventByOrganizer
+    // );
+
     this.router.get(
       "/events",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
-      this.organizerController.getEventByOrganizer
-    );
-    this.router.get(
-      "/events/:slug",
-      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
-      verifyRole(["ADMIN"]),
-      this.organizerController.getEventOrganizerBySlug
+      this.organizerController.getOrganizerEvents
     );
 
     this.router.get(
@@ -73,6 +85,13 @@ export class OrganizerRouter {
       this.organizerController.getEventOrganizerBySlug
     );
 
+    this.router.get(
+      "/events/:slug",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getEventOrganizerBySlug
+    );
+    // getOrganizerByUserId
     this.router.get(
       "/:id",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
@@ -82,15 +101,23 @@ export class OrganizerRouter {
     // updateOrganizer
     this.router.patch(
       "/update",
-      validateBody(UpdateOrganizerDTO),
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      validateBody(UpdateOrganizerDTO),
       verifyRole(["ADMIN"]),
       this.organizerController.updateOrganizer
     );
 
+    this.router.patch(
+      "/bank-details",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      validateBody(UpdateBankDetailsDTO),
+      verifyRole(["ADMIN"]),
+      this.organizerController.updateBankDetails
+    );
+
     // uploadOrganizerPic
     this.router.post(
-      "/upload-organizer-picture",
+      "/upload-organizer",
       verifyToken,
       this.uploaderMiddleware.fileFilter([
         "image/jpeg",

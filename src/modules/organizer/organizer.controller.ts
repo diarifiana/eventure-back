@@ -3,6 +3,9 @@ import { injectable } from "tsyringe";
 import { ApiError } from "../../utils/api-error";
 import { OrganizerService } from "./organizer.service";
 import { Status } from "../../generated/prisma";
+import { plainToInstance } from "class-transformer";
+import { GetEventsDTO } from "./dto/get-event.dto";
+import { GetTransactionsDTO } from "./dto/get-transactions.dto";
 
 @injectable()
 export class OrganizerController {
@@ -82,6 +85,21 @@ export class OrganizerController {
       next(error);
     }
   };
+  updateBankDetails = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const result = await this.organizerService.updateBankDetails(
+        res.locals.user.id,
+        req.body
+      );
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 
   getEventByOrganizer = async (
     req: Request,
@@ -91,6 +109,24 @@ export class OrganizerController {
     try {
       const result = await this.organizerService.getEventByOrganizer(
         res.locals.user.id
+      );
+      // console.log("AUTH USER:", res.locals.user);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOrganizerEvents = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const query = plainToInstance(GetEventsDTO, req.query);
+      const result = await this.organizerService.getOrganizerEvents(
+        res.locals.user.id,
+        query
       );
       // console.log("AUTH USER:", res.locals.user);
       res.status(200).send(result);
@@ -139,9 +175,12 @@ export class OrganizerController {
     next: NextFunction
   ) => {
     try {
+      const query = plainToInstance(GetTransactionsDTO, req.query);
+
       const statusQuery = req.query.status as string | undefined;
       const result = await this.organizerService.getTranscationByOrganizer(
         res.locals.user.id,
+        query,
         statusQuery
       );
       // console.log("AUTH USER:", res.locals.user);
@@ -151,10 +190,30 @@ export class OrganizerController {
     }
   };
 
-  getOrganizer = async (req: Request, res: Response, next: NextFunction) => {
+ getOrganizer = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const slug = req.params.slug;
       const result = await this.organizerService.getOrganizer(slug);
+      res.status(200).send(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTransactionStatsByPeriod = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      // const statusQuery = req.query.status as string | undefined;
+      const { period, status } = req.query;
+      const result = await this.organizerService.getTransactionStatsByPeriod(
+        res.locals.user.id,
+        period as string,
+        status as string
+      );
+      // console.log("AUTH USER:", res.locals.user);
       res.status(200).send(result);
     } catch (error) {
       next(error);

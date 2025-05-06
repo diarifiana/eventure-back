@@ -13,15 +13,20 @@ import { EventRouter } from "./modules/event/event.router";
 import { OrganizerRouter } from "./modules/organizer/organizer.router";
 import { ProfileRouter } from "./modules/profile/profile.router";
 import { TicketRouter } from "./modules/ticket/ticket.router";
+import { CronService } from "./modules/jobs/cron.service";
+
 
 export class App {
   public app: Express;
+  private cronService: CronService;
 
   constructor() {
     this.app = express();
     this.configure();
     this.routes();
     this.handleError();
+    this.cronService = container.resolve(CronService);
+    this.initializeCronJobs();
   }
 
   private configure() {
@@ -53,6 +58,10 @@ export class App {
 
   private handleError() {
     this.app.use(errorMiddleware);
+  }
+
+  private initializeCronJobs() {
+    this.cronService.initCronJobs();
   }
 
   public start() {
