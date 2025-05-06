@@ -42,6 +42,10 @@ export class TransactionService {
       throw new ApiError("Details cannot be empty", 400);
     }
 
+    const ticket = await this.prisma.ticket.findFirst({
+      where: { id: body.details[0].ticketId },
+    });
+
     let availablePoints = 0;
     if (body.usePoints) {
       availablePoints = await this.pointService.getAvailablePoints(
@@ -55,7 +59,7 @@ export class TransactionService {
       const voucher = await this.prisma.voucher.findFirst({
         where: {
           code: body.voucherCode,
-          eventSlug: slug,
+          eventName: ticket?.eventName,
           endDate: {
             gt: new Date(),
           },
@@ -96,7 +100,7 @@ export class TransactionService {
         });
 
         await tx.event.update({
-          where: { id: ticket.eventId },
+          where: { name: ticket.eventName },
           data: {
             totalTransactions: {
               increment: detail.qty,
@@ -211,13 +215,26 @@ export class TransactionService {
     return transaction;
   };
 
-  getTransactionsByUser = async (userId: number) => {
+  getTransactionsByUser = async (authUserId: number) => {
     const transactions = await this.prisma.transaction.findMany({
-      where: { userId },
+      where: {
+        userId: authUserId,
+      },
+      include: {
+        transactionDetails: {
+          include: {
+            ticket: {
+              include: {
+                event: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    if (!transactions) {
-      throw new ApiError("No data", 400);
+    if (!transactions || transactions.length === 0) {
+      throw new ApiError("No transactions found for this user.", 404);
     }
 
     return transactions;

@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { injectable } from "tsyringe";
 import { JWT_SECRET_KEY } from "../../config";
+import { verifyToken } from "../../lib/jwt";
 import { uploader } from "../../lib/multer";
 import { JwtMiddleware } from "../../middlewares/jwt.middleware";
+import { verifyRole } from "../../middlewares/role.middleware";
 import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { validateBody } from "../../middlewares/validation.middleware";
 import { UpdateOrganizerDTO } from "./dto/update-organizer.dto";
-import { uploadOrganizerDTO } from "./dto/upload-organizer.dto";
 import { OrganizerController } from "./organizer.controller";
 import { verifyToken } from "../../lib/jwt";
 import { verifyRole } from "../../middlewares/role.middleware";
@@ -46,6 +47,11 @@ export class OrganizerRouter {
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
       this.organizerController.getTransactionStatsByPeriod
+    );
+
+    this.router.get(
+      "/transactions/:id",
+      this.organizerController.getEventsForOrganizer
     );
 
     this.router.get(
@@ -121,6 +127,8 @@ export class OrganizerRouter {
     );
 
     // getTransactionByOrganizer
+
+    this.router.get("/detail/:slug", this.organizerController.getOrganizer);
   };
   getRouter() {
     return this.router;

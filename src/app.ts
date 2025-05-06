@@ -12,6 +12,7 @@ import { VoucherRouter } from "./modules/voucher/voucher.router";
 import { EventRouter } from "./modules/event/event.router";
 import { OrganizerRouter } from "./modules/organizer/organizer.router";
 import { ProfileRouter } from "./modules/profile/profile.router";
+import { TicketRouter } from "./modules/ticket/ticket.router";
 import { CronService } from "./modules/jobs/cron.service";
 
 export class App {
@@ -41,6 +42,7 @@ export class App {
     const eventRouter = container.resolve(EventRouter);
     const organizerRouter = container.resolve(OrganizerRouter);
     const profileRouter = container.resolve(ProfileRouter);
+    const ticketRouter = container.resolve(TicketRouter);
 
     this.app.use("/samples", sampleRouter.getRouter());
     this.app.use("/auth", authRouter.getRouter());
@@ -50,6 +52,7 @@ export class App {
     this.app.use("/events", eventRouter.getRouter());
     this.app.use("/organizers", organizerRouter.getRouter());
     this.app.use("/profiles", profileRouter.getRouter());
+    this.app.use("/tickets", ticketRouter.getRouter());
   }
 
   private handleError() {

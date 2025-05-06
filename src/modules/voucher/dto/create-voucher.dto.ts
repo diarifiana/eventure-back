@@ -1,28 +1,24 @@
-import { Transform } from "class-transformer";
+import { Type } from "class-transformer";
 import { IsNotEmpty, IsString } from "class-validator";
 
 export class CreateVoucherDTO {
   @IsNotEmpty()
-  @Transform((value) => Number(value))
-  readonly eventId!: string;
+  @IsString()
+  readonly eventName!: string;
 
   @IsNotEmpty()
   @IsString()
   readonly code!: string;
 
   @IsNotEmpty()
-  @Transform((value) => Number(value))
-  readonly discountAmount!: string;
+  @Type(() => Number)
+  readonly discountAmount!: number;
 
   @IsNotEmpty()
-  @IsString()
-  readonly startDate!: string;
+  @Type(() => Date)
+  readonly startDate!: Date;
 
   @IsNotEmpty()
-  @IsString()
-  readonly endDate!: string;
-
-  @IsNotEmpty()
-  @Transform((value) => Number(value))
-  readonly qty!: string;
+  @Type(() => Date)
+  readonly endDate!: Date;
 }

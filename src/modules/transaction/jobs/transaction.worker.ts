@@ -52,13 +52,6 @@ export class TransactionWorker {
             });
           }
 
-          if (transaction.voucherUsed) {
-            await tx.voucher.update({
-              where: { code: transaction.voucherUsed },
-              data: { qty: { increment: 1 } },
-            });
-          }
-
           if (transaction.referralCouponUsed) {
             await tx.referralCoupon.update({
               where: {
@@ -117,13 +110,6 @@ export class TransactionWorker {
               data: {
                 qty: { increment: detail.qty },
               },
-            });
-          }
-
-          if (transaction.voucherUsed) {
-            await tx.voucher.update({
-              where: { code: transaction.voucherUsed },
-              data: { qty: { increment: 1 } },
             });
           }
 

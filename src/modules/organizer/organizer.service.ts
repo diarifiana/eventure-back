@@ -10,6 +10,10 @@ import { Prisma, Status } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-event.dto";
 import { UpdateBankDetailsDTO } from "./dto/update-bank-details.sto";
 import { GetTransactionsDTO } from "./dto/get-transactions.dto";
+import { Prisma, Status } from "../../generated/prisma";
+import { GetEventsDTO } from "./dto/get-event.dto";
+import { UpdateBankDetailsDTO } from "./dto/update-bank-details.sto";
+import { GetTransactionsDTO } from "./dto/get-transactions.dto";
 
 @injectable()
 export class OrganizerService {
@@ -272,6 +276,51 @@ export class OrganizerService {
     const totalRevenue = totalTransaction._sum?.totalAmount ?? 0;
     const totalTicket = totalTicketQty._sum?.qty ?? 0;
 
+    const [transactions, totalTransaction, totalTicketQty, count] =
+      await Promise.all([
+        this.prisma.transaction.findMany({
+          where: baseWhere,
+          include: {
+            user: true,
+            transactionDetails: {
+              include: {
+                ticket: {
+                  include: {
+                    event: true,
+                  },
+                },
+              },
+            },
+            voucher: true,
+            referralCoupon: true,
+          },
+          orderBy: {
+            [sortBy]: sortOrder,
+          },
+          take,
+          skip: take * (page - 1),
+        }),
+        this.prisma.transaction.aggregate({
+          where: baseWhere,
+          _count: { uuid: true },
+          _sum: { totalAmount: true },
+        }),
+        this.prisma.transactionDetail.aggregate({
+          where: {
+            transaction: {
+              ...baseWhere,
+            },
+          },
+          _sum: { qty: true },
+        }),
+        this.prisma.transaction.count({
+          where: baseWhere,
+        }),
+      ]);
+    const totalTransactions = totalTransaction._count?.uuid ?? 0;
+    const totalRevenue = totalTransaction._sum?.totalAmount ?? 0;
+    const totalTicket = totalTicketQty._sum?.qty ?? 0;
+
     return {
       data: { transactions, totalTransactions, totalRevenue, totalTicket },
       meta: {
@@ -359,6 +408,15 @@ export class OrganizerService {
             },
           },
         }
+      ? {
+          transactionDetails: {
+            some: {
+              ticket: {
+                eventId: event?.id,
+              },
+            },
+          },
+        }
       : {
           transactionDetails: {
             some: {
@@ -384,6 +442,7 @@ export class OrganizerService {
     };
 
     const [transactions, totalTransactions, totalRevenue, totalTicketQty] =
+    const [transactions, totalTransactions, totalRevenue, totalTicketQty] =
       await Promise.all([
         this.prisma.transaction.findMany({
           where: baseWhereWithIsDeleted,
@@ -401,18 +460,32 @@ export class OrganizerService {
             },
             voucher: true,
             referralCoupon: true,
+            transactionDetails: {
+              include: {
+                ticket: {
+                  include: {
+                    event: true,
+                  },
+                },
+              },
+            },
+            voucher: true,
+            referralCoupon: true,
           },
         }),
         this.prisma.transaction.aggregate({
+          where: baseWhereWithIsDeleted,
           where: baseWhereWithIsDeleted,
           _count: { uuid: true },
         }),
         this.prisma.transaction.aggregate({
           where: doneWhere,
+          where: doneWhere,
           _sum: { totalAmount: true },
         }),
         this.prisma.transactionDetail.aggregate({
           where: {
+            transaction: doneWhere,
             transaction: doneWhere,
           },
           _sum: { qty: true },
@@ -420,6 +493,8 @@ export class OrganizerService {
       ]);
 
     return {
+      transactions,
+      totalTransactions: totalTransactions._count.uuid,
       transactions,
       totalTransactions: totalTransactions._count.uuid,
       totalRevenue: totalRevenue._sum.totalAmount || 0,
@@ -664,5 +739,17 @@ export class OrganizerService {
       data: updatedOrganizerBank,
       message: "Data organizer updated successfully",
     };
+  };
+  getOrganizer = async (slug: string) => {
+    const organizer = await this.prisma.organizer.findFirst({
+      where: { slug },
+      include: { events: true },
+    });
+
+    if (!organizer) {
+      throw new ApiError("Organizer not found", 400);
+    }
+
+    return organizer;
   };
 }

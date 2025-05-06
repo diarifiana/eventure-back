@@ -8,6 +8,7 @@ export const verifyRole = (roles: string[]) => {
     if (!userRole || !roles.includes(userRole)) {
       throw new ApiError("forbidden", 403);
     }
+    console.log("role is verified");
     next();
   };
 };

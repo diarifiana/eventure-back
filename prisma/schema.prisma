@@ -44,7 +44,8 @@ model Organizer {
   id                Int      @id @default(autoincrement())
   userId            Int      @unique
   user              User     @relation(fields: [userId], references: [id])
-  name              String
+  name              String   @unique
+  slug              String   @unique
   aboutUs           String?
   profilePic        String
   bankName          String?
@@ -93,7 +94,7 @@ model Event {
   organizerId       Int
   organizer         Organizer    @relation("OrganizerToEvent", fields: [organizerId], references: [id])
   slug              String       @unique
-  name              String
+  name              String       @unique
   desc              String
   startDate         DateTime
   endDate           DateTime
@@ -111,8 +112,8 @@ model Event {
 
 model Voucher {
   id             Int           @id @default(autoincrement())
-  eventSlug      String
-  event          Event         @relation(fields: [eventSlug], references: [slug])
+  eventName      String
+  event          Event         @relation(fields: [eventName], references: [name])
   code           String        @unique
   discountAmount Int
   startDate      DateTime
@@ -126,17 +127,17 @@ model Voucher {
 }
 
 model Ticket {
-  id                Int                 @id @default(autoincrement())
-  eventId           Int
-  event             Event               @relation(fields: [eventId], references: [id])
-  ticketType        String
-  price             Int
-  qty               Int
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  isDeleted         Boolean             @default(false)
-  transactions      Transaction[]
-  transactionDetail TransactionDetail[]
+  id                 Int                 @id @default(autoincrement())
+  eventName          String
+  event              Event               @relation(fields: [eventName], references: [name])
+  ticketType         String
+  price              Int
+  qty                Int
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  isDeleted          Boolean             @default(false)
+  transactions       Transaction[]
+  transactionDetails TransactionDetail[]
 
   @@map("tickets")
 }
