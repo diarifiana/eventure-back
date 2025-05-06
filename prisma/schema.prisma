@@ -41,16 +41,19 @@ model User {
 }
 
 model Organizer {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @unique
-  user       User     @relation(fields: [userId], references: [id])
-  name       String
-  aboutUs    String?
-  profilePic String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  isDeleted  Boolean  @default(false)
-  events     Event[]  @relation("OrganizerToEvent")
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id])
+  name              String
+  aboutUs           String?
+  profilePic        String
+  bankName          String?
+  bankAccountNumber String?
+  bankAccountHolder String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  isDeleted         Boolean  @default(false)
+  events            Event[]  @relation("OrganizerToEvent")
 
   @@map("organizers")
 }
@@ -199,9 +202,11 @@ enum Status {
 }
 
 enum Rating {
+  IMPERFECT
   BAD
   GOOD
   EXCELLENT
+  PERFECT
 }
 
 enum Location {
