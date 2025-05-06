@@ -52,6 +52,9 @@ export class ProfileService {
         updatedAt: true,
         isDeleted: true,
       },
+      include: {
+        pointDetails: true,
+      },
     });
 
     if (!user) {
