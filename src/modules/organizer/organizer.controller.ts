@@ -157,6 +157,8 @@ export class OrganizerController {
     res: Response,
     next: NextFunction
   ) => {
+    console.log("DEBUG res.locals.user:", res.locals.user); // penting
+    console.log("DEBUG req.params.slug:", req.params.slug);
     try {
       const result = await this.organizerService.getTransactionPerEventSummary(
         res.locals.user.id,
@@ -218,23 +220,23 @@ export class OrganizerController {
     }
   };
 
-  getTransactionStatsByPeriod = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    try {
-      // const statusQuery = req.query.status as string | undefined;
-      const { period, status } = req.query;
-      const result = await this.organizerService.getTransactionStatsByPeriod(
-        res.locals.user.id,
-        period as string,
-        status as string
-      );
-      // console.log("AUTH USER:", res.locals.user);
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
-    }
-  };
+  // getTransactionStatsByPeriod = async (
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction
+  // ) => {
+  //   try {
+  //     // const statusQuery = req.query.status as string | undefined;
+  //     const { period, status } = req.query;
+  //     const result = await this.organizerService.getTransactionStatsByPeriod(
+  //       res.locals.user.id,
+  //       period as string,
+  //       status as string
+  //     );
+  //     // console.log("AUTH USER:", res.locals.user);
+  //     res.status(200).send(result);
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 }

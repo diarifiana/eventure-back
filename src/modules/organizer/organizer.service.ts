@@ -10,10 +10,6 @@ import { Prisma, Status } from "../../generated/prisma";
 import { GetEventsDTO } from "./dto/get-event.dto";
 import { UpdateBankDetailsDTO } from "./dto/update-bank-details.sto";
 import { GetTransactionsDTO } from "./dto/get-transactions.dto";
-import { Prisma, Status } from "../../generated/prisma";
-import { GetEventsDTO } from "./dto/get-event.dto";
-import { UpdateBankDetailsDTO } from "./dto/update-bank-details.sto";
-import { GetTransactionsDTO } from "./dto/get-transactions.dto";
 
 @injectable()
 export class OrganizerService {
@@ -276,51 +272,6 @@ export class OrganizerService {
     const totalRevenue = totalTransaction._sum?.totalAmount ?? 0;
     const totalTicket = totalTicketQty._sum?.qty ?? 0;
 
-    const [transactions, totalTransaction, totalTicketQty, count] =
-      await Promise.all([
-        this.prisma.transaction.findMany({
-          where: baseWhere,
-          include: {
-            user: true,
-            transactionDetails: {
-              include: {
-                ticket: {
-                  include: {
-                    event: true,
-                  },
-                },
-              },
-            },
-            voucher: true,
-            referralCoupon: true,
-          },
-          orderBy: {
-            [sortBy]: sortOrder,
-          },
-          take,
-          skip: take * (page - 1),
-        }),
-        this.prisma.transaction.aggregate({
-          where: baseWhere,
-          _count: { uuid: true },
-          _sum: { totalAmount: true },
-        }),
-        this.prisma.transactionDetail.aggregate({
-          where: {
-            transaction: {
-              ...baseWhere,
-            },
-          },
-          _sum: { qty: true },
-        }),
-        this.prisma.transaction.count({
-          where: baseWhere,
-        }),
-      ]);
-    const totalTransactions = totalTransaction._count?.uuid ?? 0;
-    const totalRevenue = totalTransaction._sum?.totalAmount ?? 0;
-    const totalTicket = totalTicketQty._sum?.qty ?? 0;
-
     return {
       data: { transactions, totalTransactions, totalRevenue, totalTicket },
       meta: {
@@ -388,66 +339,146 @@ export class OrganizerService {
 
     const organizerId = user.organizer.id;
 
-    const eventFilter = eventSlug
-      ? { slug: eventSlug, organizerId }
-      : { organizerId };
+    let event = null;
+    if (eventSlug) {
+      event = await this.prisma.event.findFirst({
+        where: {
+          slug: eventSlug,
+          organizerId,
+          isDeleted: false,
+        },
+        include: {
+          tickets: true,
+        },
+      });
 
-    const event = eventSlug
-      ? await this.prisma.event.findFirst({
-          where: { ...eventFilter, isDeleted: false },
-        })
-      : null;
+      if (!event) {
+        throw new ApiError("Event not found", 404);
+      }
+    }
 
-    const baseWhere = eventSlug
-      ? {
-          transactionDetails: {
-            some: {
-              ticket: {
-                eventId: event?.id,
-              },
-            },
+    const ticketsForEvent = await this.prisma.ticket.findMany({
+      where: eventSlug
+        ? { event: { slug: eventSlug } }
+        : { event: { organizerId } },
+      take: 5,
+    });
+
+    if (ticketsForEvent.length > 0) {
+      const ticketIds = ticketsForEvent.map((t) => t.id);
+
+      const transactionDetailsForTickets =
+        await this.prisma.transactionDetail.findMany({
+          where: {
+            ticketId: { in: ticketIds },
           },
-        }
-      ? {
-          transactionDetails: {
-            some: {
-              ticket: {
-                eventId: event?.id,
-              },
-            },
+          include: {
+            transaction: true,
           },
-        }
-      : {
-          transactionDetails: {
-            some: {
-              ticket: {
-                event: {
-                  organizerId,
-                  isDeleted: false,
-                },
-              },
-            },
-          },
+          take: 5,
+        });
+    }
+
+    let baseWhere;
+
+    if (eventSlug && event) {
+      const eventTickets = await this.prisma.ticket.findMany({
+        where: { event: { slug: eventSlug } },
+        select: { id: true },
+      });
+
+      const ticketIds = eventTickets.map((t) => t.id);
+
+      if (ticketIds.length === 0) {
+        return {
+          transactions: [],
+          totalTransactions: 0,
+          totalRevenue: 0,
+          totalTicket: 0,
         };
+      }
+
+      // Query based on ticket IDs
+      baseWhere = {
+        OR: [
+          // Direct ticket relation
+          { ticketId: { in: ticketIds } },
+          // Through transaction details
+          {
+            transactionDetails: {
+              some: {
+                ticketId: { in: ticketIds },
+              },
+            },
+          },
+        ],
+        isDeleted: false,
+      };
+    } else {
+      // All events for this organizer
+      const organizerEventIds = await this.prisma.event.findMany({
+        where: { organizerId, isDeleted: false },
+        select: { id: true },
+      });
+
+      const eventIds = organizerEventIds.map((e) => e.id);
+
+      if (eventIds.length === 0) {
+        // Return empty result if no events found
+        return {
+          transactions: [],
+          totalTransactions: 0,
+          totalRevenue: 0,
+          totalTicket: 0,
+        };
+      }
+
+      // Get all tickets for these events
+      const eventTickets = await this.prisma.ticket.findMany({
+        where: { event: { id: { in: eventIds } } },
+        select: { id: true },
+      });
+
+      const ticketIds = eventTickets.map((t) => t.id);
+
+      if (ticketIds.length === 0) {
+        // Return empty result if no tickets found
+        return {
+          transactions: [],
+          totalTransactions: 0,
+          totalRevenue: 0,
+          totalTicket: 0,
+        };
+      }
+
+      // Query based on ticket IDs
+      baseWhere = {
+        OR: [
+          // Direct ticket relation
+          { ticketId: { in: ticketIds } },
+          // Through transaction details
+          {
+            transactionDetails: {
+              some: {
+                ticketId: { in: ticketIds },
+              },
+            },
+          },
+        ],
+        isDeleted: false,
+      };
+    }
 
     const doneWhere = {
       ...baseWhere,
       status: "DONE" as const,
-      isDeleted: false,
     };
 
-    const baseWhereWithIsDeleted = {
-      ...baseWhere,
-      isDeleted: false,
-    };
-
-    const [transactions, totalTransactions, totalRevenue, totalTicketQty] =
     const [transactions, totalTransactions, totalRevenue, totalTicketQty] =
       await Promise.all([
         this.prisma.transaction.findMany({
-          where: baseWhereWithIsDeleted,
+          where: baseWhere,
           include: {
-            ticket: { include: { event: true } },
             user: true,
             transactionDetails: {
               include: {
@@ -458,15 +489,9 @@ export class OrganizerService {
                 },
               },
             },
-            voucher: true,
-            referralCoupon: true,
-            transactionDetails: {
+            ticket: {
               include: {
-                ticket: {
-                  include: {
-                    event: true,
-                  },
-                },
+                event: true,
               },
             },
             voucher: true,
@@ -474,18 +499,15 @@ export class OrganizerService {
           },
         }),
         this.prisma.transaction.aggregate({
-          where: baseWhereWithIsDeleted,
-          where: baseWhereWithIsDeleted,
+          where: baseWhere,
           _count: { uuid: true },
         }),
         this.prisma.transaction.aggregate({
-          where: doneWhere,
           where: doneWhere,
           _sum: { totalAmount: true },
         }),
         this.prisma.transactionDetail.aggregate({
           where: {
-            transaction: doneWhere,
             transaction: doneWhere,
           },
           _sum: { qty: true },
@@ -493,8 +515,6 @@ export class OrganizerService {
       ]);
 
     return {
-      transactions,
-      totalTransactions: totalTransactions._count.uuid,
       transactions,
       totalTransactions: totalTransactions._count.uuid,
       totalRevenue: totalRevenue._sum.totalAmount || 0,
@@ -740,6 +760,7 @@ export class OrganizerService {
       message: "Data organizer updated successfully",
     };
   };
+
   getOrganizer = async (slug: string) => {
     const organizer = await this.prisma.organizer.findFirst({
       where: { slug },
@@ -751,5 +772,31 @@ export class OrganizerService {
     }
 
     return organizer;
+  };
+
+  getEventsForOrganizer = async (authUserId: number) => {
+    const organizer = await this.prisma.organizer.findFirst({
+      where: { userId: authUserId },
+    });
+
+    if (!organizer) {
+      throw new ApiError("Organizer not found", 400);
+    }
+
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        transactionDetails: {
+          some: {
+            ticket: {
+              event: {
+                organizerId: organizer.id,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return transactions;
   };
 }
