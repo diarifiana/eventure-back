@@ -337,8 +337,17 @@ export class TransactionService {
       throw new ApiError("User has not uploaded payment proof", 400);
     }
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: authUserId },
+      include: { organizer: true },
+    });
+
+    if (!user?.organizer) {
+      throw new ApiError("You don't have an organizer account", 403);
+    }
+
     const isAuthorized = transaction.transactionDetails.some(
-      (detail) => detail.ticket.event.organizerId === authUserId
+      (detail) => detail.ticket.event.organizerId === user.organizer!.id
     );
 
     if (!isAuthorized) {
@@ -373,7 +382,7 @@ export class TransactionService {
           });
         }
 
-        if (transaction.usePoints && transaction.pointsUsed) {
+        if (transaction.usePoints && transaction.pointsUsed > 0) {
           await tx.pointDetail.update({
             where: { userId: transaction.userId },
             data: { amount: { increment: transaction.pointsUsed } },
@@ -387,7 +396,6 @@ export class TransactionService {
           });
         }
 
-        // ✅ Tandai referral coupon belum diklaim
         if (transaction.referralCouponUsed) {
           await tx.referralCoupon.update({
             where: { referralCoupon: transaction.referralCouponUsed },
@@ -418,12 +426,27 @@ export class TransactionService {
           { uuid },
           {
             jobId: `organizer-followup:${uuid}`,
-            delay: 5 * 24 * 60 * 60 * 1000,
+            delay: 5 * 24 * 60 * 60 * 1000, // 5 days
             removeOnComplete: true,
             attempts: 3,
             backoff: { type: "exponential", delay: 1000 },
           }
         );
+
+        const eventIds = new Set<number>();
+
+        transaction.transactionDetails.forEach((detail) => {
+          if (detail.ticket.event.id) {
+            eventIds.add(detail.ticket.event.id);
+          }
+        });
+
+        for (const eventId of eventIds) {
+          await tx.event.update({
+            where: { id: eventId },
+            data: { totalTransactions: { increment: 1 } },
+          });
+        }
       }
 
       await tx.transaction.update({
@@ -432,7 +455,6 @@ export class TransactionService {
       });
     });
 
-    // ✅ Kirim email
     await this.mailService.sendEmail(
       transaction.user.email,
       emailSubject,

@@ -1,10 +1,8 @@
 import { Router } from "express";
 import { injectable } from "tsyringe";
 import { JWT_SECRET_KEY } from "../../config";
-import { verifyToken } from "../../lib/jwt";
 import { uploader } from "../../lib/multer";
 import { JwtMiddleware } from "../../middlewares/jwt.middleware";
-import { verifyRole } from "../../middlewares/role.middleware";
 import { UploaderMiddleware } from "../../middlewares/uploader.middleware";
 import { validateBody } from "../../middlewares/validation.middleware";
 import { UpdateOrganizerDTO } from "./dto/update-organizer.dto";
@@ -12,7 +10,7 @@ import { OrganizerController } from "./organizer.controller";
 import { verifyToken } from "../../lib/jwt";
 import { verifyRole } from "../../middlewares/role.middleware";
 import { UpdateBankDetailsDTO } from "./dto/update-bank-details.sto";
-
+import { get } from "http";
 
 @injectable()
 export class OrganizerRouter {
@@ -44,24 +42,22 @@ export class OrganizerRouter {
     );
 
     this.router.get(
+      "/transactions/event/:slug",
+      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
+      verifyRole(["ADMIN"]),
+      this.organizerController.getTransactionPerEventSummary
+    );
+
+    this.router.get(
       "/transaction-stats",
       this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
       verifyRole(["ADMIN"]),
       this.organizerController.getTransactionStatsByPeriod
     );
-    
-     this.router.get(
-      "/transactions/:id",
-      // this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
-      // verifyRole(["ADMIN"]),
-      this.organizerController.getEventsForOrganizer
-    );
 
     this.router.get(
-      "/transactions/event/:slug",
-      this.jwtMiddleware.verifyToken(JWT_SECRET_KEY!),
-      verifyRole(["ADMIN"]),
-      this.organizerController.getTransactionPerEventSummary
+      "/transactions/:id",
+      this.organizerController.getEventsForOrganizer
     );
 
     // this.router.get(

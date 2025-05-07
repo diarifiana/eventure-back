@@ -44,8 +44,8 @@ model Organizer {
   id                Int      @id @default(autoincrement())
   userId            Int      @unique
   user              User     @relation(fields: [userId], references: [id])
-  name              String @unique
-  slug       String   @unique
+  name              String   @unique
+  slug              String   @unique
   aboutUs           String?
   profilePic        String
   bankName          String?

@@ -229,12 +229,9 @@ export class EventService {
     if (existingEvent.organizer.user.id !== authUserId) {
       throw new ApiError("You are not authorized", 401);
     }
-    // cek dlu sudah ada thumbnail di cloudinary atau belum
     if (existingEvent.thumbnail) {
       await this.cloudinaryService.remove(existingEvent.thumbnail);
     }
-    // kalo udha dihapus
-    // kalo belom diupload
     const { secure_url } = await this.cloudinaryService.upload(thumbnail);
     await this.prisma.event.update({
       where: { id },

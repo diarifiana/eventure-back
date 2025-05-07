@@ -15,7 +15,6 @@ import { ProfileRouter } from "./modules/profile/profile.router";
 import { TicketRouter } from "./modules/ticket/ticket.router";
 import { CronService } from "./modules/jobs/cron.service";
 
-
 export class App {
   public app: Express;
   private cronService: CronService;
