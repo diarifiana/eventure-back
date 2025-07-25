@@ -61,7 +61,6 @@ export class OrganizerController {
       if (!files || !picture) {
         throw new ApiError("Please upload a profile picture", 400);
       }
-      // console.log(files);
 
       const result = await this.organizerService.uploadOrganizerPic(
         userId,
@@ -110,7 +109,7 @@ export class OrganizerController {
       const result = await this.organizerService.getEventByOrganizer(
         res.locals.user.id
       );
-      // console.log("AUTH USER:", res.locals.user);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -128,7 +127,7 @@ export class OrganizerController {
         res.locals.user.id,
         query
       );
-      // console.log("AUTH USER:", res.locals.user);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -145,7 +144,7 @@ export class OrganizerController {
         res.locals.user.id,
         req.params.slug
       );
-      // console.log("AUTH USER:", res.locals.user);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -157,14 +156,12 @@ export class OrganizerController {
     res: Response,
     next: NextFunction
   ) => {
-    console.log("DEBUG res.locals.user:", res.locals.user); // penting
-    console.log("DEBUG req.params.slug:", req.params.slug);
     try {
       const result = await this.organizerService.getTransactionPerEventSummary(
         res.locals.user.id,
         req.params.slug
       );
-      // console.log("AUTH USER:", res.locals.user);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -185,7 +182,7 @@ export class OrganizerController {
         query,
         statusQuery
       );
-      // console.log("AUTH USER:", res.locals.user);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
@@ -233,7 +230,7 @@ export class OrganizerController {
   //       period as string,
   //       status as string
   //     );
-  //     // console.log("AUTH USER:", res.locals.user);
+
   //     res.status(200).send(result);
   //   } catch (error) {
   //     next(error);

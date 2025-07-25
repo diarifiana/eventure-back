@@ -93,7 +93,6 @@ export class AuthController {
     next: NextFunction
   ) => {
     try {
-      // console.log("req.file di controller:", req.file);
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const picture = files.profilePic?.[0];
       const userId = res.locals.user?.id;

@@ -234,8 +234,6 @@ export class AuthService {
       )
     );
 
-    console.log("Filtered Update data:", filteredData);
-
     const updatedUser = await this.prisma.user.update({
       where: { id: authUserId },
       data: filteredData,

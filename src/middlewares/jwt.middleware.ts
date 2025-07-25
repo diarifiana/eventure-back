@@ -18,7 +18,6 @@ export class JwtMiddleware {
           }
         }
         res.locals.user = payload;
-        console.log("jwtmiddleware succeed");
         next();
       });
     };

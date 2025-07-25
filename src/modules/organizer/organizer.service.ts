@@ -710,16 +710,11 @@ export class OrganizerService {
       where: whereClause,
     });
 
-    const totalTransaction = await this.prisma.transaction.count({
+    const totalTransaction = await this.prisma.ticket.count({
       where: {
-        transactionDetails: {
-          some: {
-            ticket: {
-              event: {
-                organizerId,
-              },
-            },
-          },
+        event: {
+          organizerId,
+          isDeleted: false,
         },
       },
     });
