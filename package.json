@@ -1,10 +1,10 @@
 {
-  "name": "express-prisma-class",
+  "name": "eventure-back",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && npm run copy-files",
+    "build": "next build --output public",
     "copy-files": "cpx src/modules/mail/templates/**/* dist/modules/mail/templates",
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon src/index.ts",
