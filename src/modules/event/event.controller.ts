@@ -13,7 +13,6 @@ export class EventController {
   private eventService: EventService;
 
   constructor(EventService: EventService) {
-    console.log("Constructing EventController");
     this.eventService = EventService;
   }
 
@@ -22,7 +21,7 @@ export class EventController {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const picture = files.thumbnail?.[0];
       const body = plainToInstance(EventDTO, req.body);
-      console.log(res.locals);
+
       const authUserId = res.locals.user.id as number;
 
       if (!files) {
@@ -109,7 +108,7 @@ export class EventController {
         res.locals.user.id,
         plainToInstance(UpdateEventDTO, req.body)
       );
-      // console.log("ini body", req.body);
+
       res.status(200).send(result);
     } catch (error) {
       next(error);
